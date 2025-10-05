@@ -106,6 +106,53 @@
         </div>
     </div>
 
+    <!-- Network Information Section -->
+    <div class="mt-4" style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
+        <h4 class="title is-6 mb-3">
+            <span class="icon-text">
+                <span class="icon has-text-info">
+                    <i class="fas fa-network-wired"></i>
+                </span>
+                <span>Network Information</span>
+            </span>
+        </h4>
+
+        <div class="columns is-multiline">
+            <div class="column is-one-third">
+                <div class="field">
+                    <label class="label is-small has-text-grey">
+                        <i class="fas fa-globe mr-1"></i> Domain
+                    </label>
+                    <div class="control">
+                        <p class="has-text-weight-semibold">{{.SystemInfo.DomainName}}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-one-third">
+                <div class="field">
+                    <label class="label is-small has-text-grey">
+                        <i class="fas fa-ethernet mr-1"></i> IP Address
+                    </label>
+                    <div class="control">
+                        <p class="has-text-weight-semibold"><code>{{.SystemInfo.IPAddress}}</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-one-third">
+                <div class="field">
+                    <label class="label is-small has-text-grey">
+                        <i class="fas fa-network-wired mr-1"></i> MAC Address
+                    </label>
+                    <div class="control">
+                        <p class="has-text-weight-semibold"><code>{{.SystemInfo.MACAddress}}</code></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scan Timestamp -->
     <div class="mt-3 has-background-light" style="padding: 0.75rem; border-radius: 0.5rem;">
         <p class="is-size-7 has-text-grey mb-0">

@@ -27,6 +27,10 @@ type SystemInfo struct {
 	Architecture    string
 	InstallDate     string
 	SystemRoot      string
+	// Network Information
+	DomainName      string
+	IPAddress       string
+	MACAddress      string
 }
 
 // QueryResult represents a single registry query result for template rendering
