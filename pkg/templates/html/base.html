@@ -116,10 +116,9 @@
             }
         }
 
-        // Search/Filter
+        // Search
         function filterResults() {
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value;
             const rows = document.querySelectorAll('#resultsTable tbody tr');
 
             // Process rows in pairs (summary row + detail row)
@@ -135,15 +134,11 @@
                     combinedText += ' ' + detailRow.textContent.toLowerCase();
                 }
 
-                const statusTag = summaryRow.querySelector('.tag');
-                const status = statusTag ? statusTag.textContent : '';
-
-                // Check matches
+                // Check if search matches
                 const matchesSearch = combinedText.includes(searchInput);
-                const matchesStatus = statusFilter === 'all' || status.includes(statusFilter);
 
                 // Show/hide both rows together
-                const display = (matchesSearch && matchesStatus) ? '' : 'none';
+                const display = matchesSearch ? '' : 'none';
                 summaryRow.style.display = display;
                 if (detailRow) {
                     detailRow.style.display = display;
