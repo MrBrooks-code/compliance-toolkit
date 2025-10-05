@@ -23,40 +23,40 @@ Welcome to the Compliance Toolkit! This guide will help you get started with Win
 
 ### 📊 Reports & Compliance
 
-7. **[Available Reports](reference/REPORTS.md)** - All compliance reports
-8. **[Evidence Logging](reference/EVIDENCE.md)** - Audit trail documentation
-9. **[Executive Reports](reference/EXECUTIVE.md)** - C-level reporting features
+7. **[Available Reports](docs/reference/REPORTS.md)** - All compliance reports
+8. **[Evidence Logging](docs/reference/EVIDENCE.md)** - Audit trail documentation
+9. **[Executive Reports](docs/reference/EXECUTIVE.md)** - C-level reporting features
 
 ### 🔧 Advanced Usage
 
-10. **[Adding New Reports](developer-guide/ADDING_REPORTS.md)** - Create custom reports
-11. **[Template System](developer-guide/TEMPLATES.md)** - HTML template customization
-12. **[Configuration Reference](reference/CONFIG.md)** - JSON configuration format
+10. **[Adding New Reports](docs/developer-guide/ADDING_REPORTS.md)** - Create custom reports
+11. **[Template System](docs/developer-guide/TEMPLATES.md)** - HTML template customization
+12. **[Configuration Reference](docs/reference/CONFIG.md)** - JSON configuration format
 
 ### 👨‍💻 Developer Resources
 
-13. **[Architecture Overview](developer-guide/ARCHITECTURE.md)** - Codebase structure
-14. **[Development Guide](developer-guide/DEVELOPMENT.md)** - Building and contributing
-15. **[Project Status](PROJECT_STATUS.md)** - Current features and roadmap
+13. **[Architecture Overview](docs/developer-guide/ARCHITECTURE.md)** - Codebase structure
+14. **[Development Guide](docs/developer-guide/DEVELOPMENT.md)** - Building and contributing
+15. **[Project Status](docs/PROJECT_STATUS.md)** - Current features and roadmap
 
 ---
 
 ## 🎯 Quick Links
 
 ### For End Users:
-- **First time?** → [Quick Start Guide](user-guide/QUICKSTART.md)
-- **Need to install?** → [Installation Guide](user-guide/INSTALLATION.md)
-- **Want automation?** → [CLI Quick Start](user-guide/CLI_QUICKSTART.md)
+- **First time?** → [Quick Start Guide](docs/user-guide/QUICKSTART.md)
+- **Need to install?** → [Installation Guide](docs/user-guide/INSTALLATION.md)
+- **Want automation?** → [CLI Quick Start](docs/user-guide/CLI_QUICKSTART.md)
 
 ### For IT Administrators:
-- **Scheduled scans?** → [CLI Usage Guide](user-guide/CLI_USAGE.md)
-- **Need examples?** → [Automation Examples](user-guide/AUTOMATION.md)
-- **Compliance audit?** → [Evidence Logging](reference/EVIDENCE.md)
+- **Scheduled scans?** → [CLI Usage Guide](docs/user-guide/CLI_USAGE.md)
+- **Need examples?** → [Automation Examples](docs/user-guide/AUTOMATION.md)
+- **Compliance audit?** → [Evidence Logging](docs/reference/EVIDENCE.md)
 
 ### For Developers:
-- **Custom reports?** → [Adding New Reports](developer-guide/ADDING_REPORTS.md)
-- **Customize UI?** → [Template System](developer-guide/TEMPLATES.md)
-- **Understand code?** → [Architecture Overview](developer-guide/ARCHITECTURE.md)
+- **Custom reports?** → [Adding New Reports](docs/developer-guide/ADDING_REPORTS.md)
+- **Customize UI?** → [Template System](docs/developer-guide/TEMPLATES.md)
+- **Understand code?** → [Architecture Overview](docs/developer-guide/ARCHITECTURE.md)
 
 ---
 
@@ -138,13 +138,12 @@ docs/
 
 **Reports not opening**
 - Solution: Clear browser cache and regenerate report
-- See: [User Guide](user-guide/USER_GUIDE.md#troubleshooting)
+- See: [User Guide](docs/user-guide/USER_GUIDE.md#troubleshooting)
 
 ### Need More Help?
 
-- 📖 Browse the [User Guide](user-guide/USER_GUIDE.md)
-- 🔧 Check [CLI Usage](user-guide/CLI_USAGE.md)
-- 📊 Review [Project Status](PROJECT_STATUS.md)
+- 📖 Browse the [User Guide](docs/user-guide/USER_GUIDE.md)
+- 🔧 Check [CLI Usage](docs/user-guide/CLI_USAGE.md)
 
 ---
 
@@ -163,5 +162,5 @@ See [Project Status](PROJECT_STATUS.md) for complete version history.
 
 ---
 
-*Documentation Version: 1.0*
+*Documentation Version: 1.1*
 *Last Updated: 2025-01-05*
