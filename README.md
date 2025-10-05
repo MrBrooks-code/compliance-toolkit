@@ -17,9 +17,9 @@ Welcome to the Compliance Toolkit! This guide will help you get started with Win
 
 ### 💻 Command Line Interface
 
-4. **[CLI Quick Start](user-guide/CLI_QUICKSTART.md)** - 5-minute CLI setup
-5. **[CLI Usage Guide](user-guide/CLI_USAGE.md)** - Complete CLI reference
-6. **[Automation Examples](user-guide/AUTOMATION.md)** - Scheduled tasks and scripts
+4. **[CLI Quick Start](docs/user-guide/CLI_QUICKSTART.md)** - 5-minute CLI setup
+5. **[CLI Usage Guide](docs/user-guide/CLI_USAGE.md)** - Complete CLI reference
+6. **[Automation Examples](docs/user-guide/AUTOMATION.md)** - Scheduled tasks and scripts
 
 ### 📊 Reports & Compliance
 
