@@ -320,6 +320,9 @@ func (app *App) executeReport(configFile string) bool {
 	// Add metadata to HTML report
 	htmlReport.Metadata = config.Metadata
 
+	// Set registry reader for system info gathering
+	htmlReport.SetRegistryReader(app.reader)
+
 	// Create evidence logger for compliance audit trail
 	reportType := filepath.Base(configFile)
 	reportType = reportType[:len(reportType)-5] // Remove .json extension
@@ -854,6 +857,9 @@ func (app *App) executeReportQuiet(configFile string, quiet bool) bool {
 
 	htmlReport := pkg.NewHTMLReport(reportName, app.outputDir)
 	htmlReport.Metadata = config.Metadata
+
+	// Set registry reader for system info gathering
+	htmlReport.SetRegistryReader(app.reader)
 
 	// Create evidence logger
 	reportType := filepath.Base(configFile)

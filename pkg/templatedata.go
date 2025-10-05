@@ -7,11 +7,26 @@ type ReportData struct {
 	Metadata       ReportMetadata
 	GeneratedAt    time.Time
 	MachineName    string
+	SystemInfo     SystemInfo // Added system information panel
 	ComplianceRate float64
 	TotalQueries   int
 	PassedQueries  int
 	FailedQueries  int
 	Results        []QueryResult
+}
+
+// SystemInfo contains system details for the report evidence
+type SystemInfo struct {
+	Hostname        string
+	OSProductName   string
+	OSEdition       string
+	OSBuildNumber   string
+	OSVersion       string
+	RegisteredOwner string
+	RegisteredOrg   string
+	Architecture    string
+	InstallDate     string
+	SystemRoot      string
 }
 
 // QueryResult represents a single registry query result for template rendering
