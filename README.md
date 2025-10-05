@@ -39,6 +39,7 @@ Welcome to the Compliance Toolkit! This guide will help you get started with Win
 14. **[Development Guide](docs/developer-guide/DEVELOPMENT.md)** - Building and contributing
 15. **[Project Status](docs/PROJECT_STATUS.md)** - Current features and roadmap
 
+
 ---
 
 ## 🎯 Quick Links
@@ -146,6 +147,15 @@ docs/
 - 🔧 Check [CLI Usage](docs/user-guide/CLI_USAGE.md)
 
 ---
+
+### Example Report - 
+<p align="center">
+  <img src="example_report.png" alt="My local diagram" />
+</p>
+
+
+---
+
 
 ## 🔄 Updates & Versions
 
