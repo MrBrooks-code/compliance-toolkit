@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"log/slog"
@@ -14,12 +13,13 @@ import (
 	"time"
 
 	"compliancetoolkit/pkg"
+	"github.com/spf13/pflag"
 )
 
 type App struct {
 	menu        *pkg.Menu
 	reader      *pkg.RegistryReader
-	config      *AppConfig
+	config      *pkg.Config
 	outputDir   string
 	logsDir     string
 	evidenceDir string
@@ -27,22 +27,51 @@ type App struct {
 	exeDir      string
 }
 
-type AppConfig struct {
-	Timeout  time.Duration
-	LogLevel slog.Level
-}
-
 func main() {
-	// Define CLI flags
-	reportName := flag.String("report", "", "Report to run (e.g., 'NIST_800_171_compliance.json' or 'all')")
-	listReports := flag.Bool("list", false, "List available reports and exit")
-	quiet := flag.Bool("quiet", false, "Suppress non-essential output (for scheduled runs)")
-	outputDir := flag.String("output", "output/reports", "Output directory for reports")
-	logsDir := flag.String("logs", "output/logs", "Logs directory")
-	evidenceDir := flag.String("evidence", "output/evidence", "Evidence logs directory")
-	timeout := flag.Duration("timeout", 10*time.Second, "Registry operation timeout")
+	// Define CLI flags using pflag for better Viper integration
+	flags := pflag.NewFlagSet("compliancetoolkit", pflag.ExitOnError)
 
-	flag.Parse()
+	// Report execution flags
+	reportName := flags.StringP("report", "r", "", "Report to run (e.g., 'NIST_800_171_compliance.json' or 'all')")
+	listReports := flags.BoolP("list", "l", false, "List available reports and exit")
+	quiet := flags.BoolP("quiet", "q", false, "Suppress non-essential output (for scheduled runs)")
+
+	// Configuration file flag
+	configFile := flags.StringP("config", "c", "", "Path to config file (default: ./config.yaml)")
+
+	// Override flags (take precedence over config file)
+	outputDir := flags.String("output", "", "Output directory for reports (overrides config)")
+	logsDir := flags.String("logs", "", "Logs directory (overrides config)")
+	evidenceDir := flags.String("evidence", "", "Evidence logs directory (overrides config)")
+	timeout := flags.Duration("timeout", 0, "Registry operation timeout (overrides config)")
+	logLevel := flags.String("log-level", "", "Log level: debug, info, warn, error (overrides config)")
+
+	// Generate default config flag
+	genConfig := flags.Bool("generate-config", false, "Generate default config.yaml file and exit")
+
+	flags.Parse(os.Args[1:])
+
+	// Handle config generation
+	if *genConfig {
+		configPath := "config/config.yaml"
+		if *configFile != "" {
+			configPath = *configFile
+		}
+		if err := pkg.SaveDefaultConfig(configPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to generate config file: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Generated default config file: %s\n", configPath)
+		fmt.Println("Edit this file to customize your configuration.")
+		return
+	}
+
+	// Load configuration (YAML -> ENV -> Flags precedence)
+	cfg, err := pkg.LoadConfig(*configFile, flags)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Failed to load configuration: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Determine executable directory
 	exePath, err := os.Executable()
@@ -52,16 +81,30 @@ func main() {
 	}
 	exeDir := filepath.Dir(exePath)
 
+	// Apply CLI flag overrides to config
+	if *outputDir != "" {
+		cfg.Reports.OutputPath = *outputDir
+	}
+	if *logsDir != "" {
+		cfg.Logging.OutputPath = *logsDir
+	}
+	if *evidenceDir != "" {
+		cfg.Reports.EvidencePath = *evidenceDir
+	}
+	if *timeout > 0 {
+		cfg.Server.ReadTimeout = *timeout
+	}
+	if *logLevel != "" {
+		cfg.Logging.Level = *logLevel
+	}
+
 	app := &App{
 		menu:        pkg.NewMenu(),
-		outputDir:   *outputDir,
-		logsDir:     *logsDir,
-		evidenceDir: *evidenceDir,
+		outputDir:   cfg.Reports.OutputPath,
+		logsDir:     cfg.Logging.OutputPath,
+		evidenceDir: cfg.Reports.EvidencePath,
 		exeDir:      exeDir,
-		config: &AppConfig{
-			Timeout:  *timeout,
-			LogLevel: slog.LevelInfo,
-		},
+		config:      cfg,
 	}
 
 	// Initialize
@@ -121,27 +164,49 @@ func (app *App) init() {
 	os.MkdirAll(app.logsDir, 0755)
 	os.MkdirAll(app.evidenceDir, 0755)
 
-	// Set up logging
-	logFile := filepath.Join(app.logsDir, fmt.Sprintf("toolkit_%s.log",
-		time.Now().Format("20060102_150405")))
+	// Set up logging based on config
+	var logger *slog.Logger
 
-	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		log.Printf("Warning: Could not create log file: %v", err)
-		app.reader = pkg.NewRegistryReader(
-			pkg.WithTimeout(app.config.Timeout),
-		)
+	// Determine log output
+	if app.config.Logging.EnableFileLogging {
+		logFile := filepath.Join(app.logsDir, fmt.Sprintf("toolkit_%s.log",
+			time.Now().Format("20060102_150405")))
+
+		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err != nil {
+			log.Printf("Warning: Could not create log file: %v", err)
+			logger = createLogger(os.Stdout, app.config.Logging)
+		} else {
+			logger = createLogger(file, app.config.Logging)
+		}
 	} else {
-		logger := slog.New(slog.NewJSONHandler(file, &slog.HandlerOptions{
-			Level: app.config.LogLevel,
-		}))
-		slog.SetDefault(logger)
-
-		app.reader = pkg.NewRegistryReader(
-			pkg.WithLogger(logger),
-			pkg.WithTimeout(app.config.Timeout),
-		)
+		// Log to stdout/stderr
+		if strings.ToLower(app.config.Logging.OutputPath) == "stderr" {
+			logger = createLogger(os.Stderr, app.config.Logging)
+		} else {
+			logger = createLogger(os.Stdout, app.config.Logging)
+		}
 	}
+
+	slog.SetDefault(logger)
+
+	// Initialize registry reader with config values
+	app.reader = pkg.NewRegistryReader(
+		pkg.WithLogger(logger),
+		pkg.WithTimeout(app.config.Server.ReadTimeout),
+	)
+}
+
+// createLogger creates a structured logger based on config
+func createLogger(output *os.File, cfg pkg.LoggingConfig) *slog.Logger {
+	opts := &slog.HandlerOptions{
+		Level: cfg.GetLogLevel(),
+	}
+
+	if cfg.IsJSONFormat() {
+		return slog.New(slog.NewJSONHandler(output, opts))
+	}
+	return slog.New(slog.NewTextHandler(output, opts))
 }
 
 // findReportsDirectory looks for the reports directory in multiple locations
@@ -271,7 +336,7 @@ func (app *App) loadAvailableReports() ([]ReportInfo, error) {
 
 		// Load the config to get metadata
 		configPath := filepath.Join(app.reportsDir, file.Name())
-		config, err := pkg.LoadConfig(configPath)
+		config, err := pkg.LoadRegistryConfig(configPath)
 		if err != nil {
 			slog.Warn("Failed to load report config", "file", file.Name(), "error", err)
 			continue
@@ -298,7 +363,7 @@ func (app *App) executeReport(configFile string) bool {
 	configPath := filepath.Join(app.reportsDir, configFile)
 
 	// Load config
-	config, err := pkg.LoadConfig(configPath)
+	config, err := pkg.LoadRegistryConfig(configPath)
 	if err != nil {
 		fmt.Printf("  ❌  Failed to load config: %v\n", err)
 		return false
@@ -655,17 +720,54 @@ func (app *App) configuration() {
 	fmt.Println("│                                                                      │")
 	fmt.Printf("│  Current Settings:                                                   │\n")
 	fmt.Println("│                                                                      │")
-	fmt.Printf("│    Output Directory:  %-46s │\n", app.outputDir)
-	fmt.Printf("│    Logs Directory:    %-46s │\n", app.logsDir)
-	fmt.Printf("│    Operation Timeout: %-46s │\n", app.config.Timeout)
-	fmt.Printf("│    Log Level:         %-46s │\n", app.config.LogLevel)
+
+	// Server/Runtime
+	fmt.Println("│  ▶ Server/Runtime:                                                   │")
+	fmt.Printf("│    Read Timeout:      %-46s │\n", app.config.Server.ReadTimeout)
+	fmt.Printf("│    Max Concurrent:    %-46d │\n", app.config.Server.MaxConcurrentReads)
 	fmt.Println("│                                                                      │")
-	fmt.Println("│  Configuration is currently managed through code.                    │")
-	fmt.Println("│  Future versions will support interactive configuration.            │")
+
+	// Logging
+	fmt.Println("│  ▶ Logging:                                                          │")
+	fmt.Printf("│    Level:             %-46s │\n", app.config.Logging.Level)
+	fmt.Printf("│    Format:            %-46s │\n", app.config.Logging.Format)
+	fmt.Printf("│    File Logging:      %-46v │\n", app.config.Logging.EnableFileLogging)
+	fmt.Println("│                                                                      │")
+
+	// Reports
+	fmt.Println("│  ▶ Reports:                                                          │")
+	fmt.Printf("│    Config Path:       %-46s │\n", truncate(app.config.Reports.ConfigPath, 46))
+	fmt.Printf("│    Output Path:       %-46s │\n", truncate(app.config.Reports.OutputPath, 46))
+	fmt.Printf("│    Evidence Path:     %-46s │\n", truncate(app.config.Reports.EvidencePath, 46))
+	fmt.Printf("│    Evidence Enabled:  %-46v │\n", app.config.Reports.EnableEvidence)
+	fmt.Printf("│    Dark Mode:         %-46v │\n", app.config.Reports.EnableDarkMode)
+	fmt.Println("│                                                                      │")
+
+	// Security
+	fmt.Println("│  ▶ Security:                                                         │")
+	fmt.Printf("│    Read-Only:         %-46v │\n", app.config.Security.ReadOnly)
+	fmt.Printf("│    Audit Mode:        %-46v │\n", app.config.Security.AuditMode)
+	fmt.Printf("│    Allowed Roots:     %-46d │\n", len(app.config.Security.AllowedRegistryRoots))
+	fmt.Println("│                                                                      │")
+
+	fmt.Println("│  Configuration can be managed via:                                   │")
+	fmt.Println("│    • config/config.yaml (YAML file)                                  │")
+	fmt.Println("│    • COMPLIANCE_TOOLKIT_* environment variables                      │")
+	fmt.Println("│    • Command-line flags (--help for list)                            │")
+	fmt.Println("│                                                                      │")
+	fmt.Println("│  Generate default config: ComplianceToolkit.exe --generate-config    │")
 	fmt.Println("│                                                                      │")
 	fmt.Println("└──────────────────────────────────────────────────────────────────────┘")
 	fmt.Println()
 	app.menu.Pause()
+}
+
+// truncate string to specified length with ellipsis
+func truncate(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
 }
 
 func (app *App) exit() {
@@ -833,7 +935,7 @@ func (app *App) executeReportQuiet(configFile string, quiet bool) bool {
 	configPath := filepath.Join(app.reportsDir, configFile)
 
 	// Load config
-	config, err := pkg.LoadConfig(configPath)
+	config, err := pkg.LoadRegistryConfig(configPath)
 	if err != nil {
 		if !quiet {
 			fmt.Printf("Failed to load config: %v\n", err)

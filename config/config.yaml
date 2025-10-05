@@ -1,0 +1,36 @@
+logging:
+    enable_file_logging: true
+    format: json
+    level: info
+    max_log_file_age_days: 30
+    max_log_file_size_mb: 100
+    output_path: stdout
+reports:
+    config_path: configs/reports
+    enable_dark_mode: true
+    enable_evidence: true
+    evidence_path: output/evidence
+    max_parallel_reports: 0
+    output_path: output/reports
+    parallel: false
+    template_path: ""
+security:
+    allowed_registry_roots:
+        - HKEY_LOCAL_MACHINE
+        - HKEY_CURRENT_USER
+        - HKEY_CLASSES_ROOT
+        - HKEY_USERS
+        - HKEY_CURRENT_CONFIG
+    audit_mode: false
+    deny_registry_paths:
+        - SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts
+        - SECURITY\Policy\Secrets
+        - SAM\SAM\Domains\Account\Users
+    read_only: true
+    require_admin_privileges: false
+server:
+    graceful_shutdown_timeout: 30s
+    host: localhost
+    max_concurrent_reads: 10
+    port: 8080
+    read_timeout: 5s
