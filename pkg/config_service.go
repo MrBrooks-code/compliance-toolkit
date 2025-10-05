@@ -14,7 +14,7 @@ func NewConfigService() ConfigService {
 
 // LoadConfig loads a configuration from file
 func (cs *ConfigServiceImpl) LoadConfig(path string) (*RegistryConfig, error) {
-	return LoadConfig(path) // Delegate to existing function
+	return LoadRegistryConfig(path) // Delegate to existing function
 }
 
 // ParseRootKey parses a root key string to registry.Key

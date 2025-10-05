@@ -40,8 +40,8 @@ type RegistryQuery struct {
 	ExpectedValue string      `json:"expected_value,omitempty"` // For compliance reporting
 }
 
-// LoadConfig loads registry operations from a JSON file
-func LoadConfig(path string) (*RegistryConfig, error) {
+// LoadRegistryConfig loads registry operations from a JSON file (renamed to avoid conflict)
+func LoadRegistryConfig(path string) (*RegistryConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
