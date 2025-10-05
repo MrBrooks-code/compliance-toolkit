@@ -264,8 +264,11 @@ func TestValidateAgainstAllowList(t *testing.T) {
 		{"allowed root key", "HKEY_LOCAL_MACHINE", false},
 		{"allowed HKCU", "HKEY_CURRENT_USER", false},
 		{"case insensitive", "hkey_local_machine", false},
+		{"short form HKLM", "HKLM", false},
+		{"short form HKCU", "HKCU", false},
 		{"not in allow list", "HKEY_USERS", true},
 		{"not in allow list HKCR", "HKEY_CLASSES_ROOT", true},
+		{"short form not in list", "HKU", true},
 	}
 
 	for _, tt := range tests {
