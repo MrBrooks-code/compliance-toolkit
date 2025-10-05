@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
+	"net"
 	"os"
 	"path/filepath"
 	"sort"
@@ -315,7 +316,79 @@ func (r *HTMLReport) gatherDetailedSystemInfo() SystemInfo {
 		info.InstallDate = installDateStr
 	}
 
+	// Network Information
+	info.DomainName = r.getDomainName(ctx)
+	info.IPAddress = r.getIPAddress()
+	info.MACAddress = r.getMACAddress()
+
 	return info
+}
+
+// getDomainName retrieves the domain name from registry
+func (r *HTMLReport) getDomainName(ctx context.Context) string {
+	// Try to get domain from registry
+	domain, err := r.registryReader.ReadString(ctx, registry.LOCAL_MACHINE,
+		`SYSTEM\CurrentControlSet\Services\Tcpip\Parameters`,
+		"Domain")
+	if err == nil && domain != "" {
+		return domain
+	}
+
+	// Try NV Domain (non-volatile)
+	domain, err = r.registryReader.ReadString(ctx, registry.LOCAL_MACHINE,
+		`SYSTEM\CurrentControlSet\Services\Tcpip\Parameters`,
+		"NV Domain")
+	if err == nil && domain != "" {
+		return domain
+	}
+
+	// Fallback to USERDNSDOMAIN environment variable
+	domain = os.Getenv("USERDNSDOMAIN")
+	if domain != "" {
+		return domain
+	}
+
+	return "WORKGROUP"
+}
+
+// getIPAddress retrieves the primary IP address
+func (r *HTMLReport) getIPAddress() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "N/A"
+	}
+
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+
+	return "N/A"
+}
+
+// getMACAddress retrieves the MAC address of the primary network adapter
+func (r *HTMLReport) getMACAddress() string {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return "N/A"
+	}
+
+	for _, iface := range interfaces {
+		// Skip loopback and down interfaces
+		if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+
+		// Get MAC address
+		if len(iface.HardwareAddr) > 0 {
+			return iface.HardwareAddr.String()
+		}
+	}
+
+	return "N/A"
 }
 
 // Helper functions
