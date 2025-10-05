@@ -11,10 +11,18 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
         {{template "main.css"}}
     </style>
 
@@ -23,8 +31,8 @@
     </style>
 </head>
 <body>
-    <!-- Dark Mode Toggle -->
-    <button id="darkModeToggle" class="button is-dark is-pulled-right m-4 no-print" onclick="toggleDarkMode()">
+    <!-- Dark Mode Toggle FAB -->
+    <button id="darkModeToggle" class="button is-dark no-print" onclick="toggleDarkMode()">
         <span class="icon">
             <i class="fas fa-moon"></i>
         </span>
@@ -33,6 +41,11 @@
     <section class="section">
         <div class="container">
             {{template "header" .}}
+
+            <!-- System Information Panel -->
+            <div class="mt-5">
+                {{template "system-info" .}}
+            </div>
 
             <div class="columns is-multiline mt-5">
                 {{template "kpi-cards" .}}

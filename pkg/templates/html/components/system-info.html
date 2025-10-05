@@ -1,0 +1,121 @@
+{{define "system-info"}}
+<!-- System Information Panel -->
+<div class="box" style="border-left: 4px solid var(--primary);">
+    <div class="level is-mobile">
+        <div class="level-left">
+            <div class="level-item">
+                <h3 class="title is-5 mb-0">
+                    <span class="icon-text">
+                        <span class="icon has-text-primary">
+                            <i class="fas fa-server"></i>
+                        </span>
+                        <span>System Information</span>
+                    </span>
+                </h3>
+            </div>
+        </div>
+        <div class="level-right">
+            <div class="level-item">
+                <span class="tag is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-fingerprint"></i>
+                    </span>
+                    <span>Evidence Details</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="columns is-multiline mt-3">
+        <!-- Left Column -->
+        <div class="column is-half">
+            <div class="field">
+                <label class="label is-small has-text-grey">
+                    <i class="fas fa-desktop mr-1"></i> Hostname
+                </label>
+                <div class="control">
+                    <p class="has-text-weight-semibold">{{.SystemInfo.Hostname}}</p>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label is-small has-text-grey">
+                    <i class="fas fa-windows mr-1"></i> Operating System
+                </label>
+                <div class="control">
+                    <p class="has-text-weight-semibold">{{.SystemInfo.OSProductName}}</p>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label is-small has-text-grey">
+                    <i class="fas fa-code-branch mr-1"></i> OS Version
+                </label>
+                <div class="control">
+                    <p class="has-text-weight-semibold">{{.SystemInfo.OSVersion}} (Build {{.SystemInfo.OSBuildNumber}})</p>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label is-small has-text-grey">
+                    <i class="fas fa-tag mr-1"></i> Edition
+                </label>
+                <div class="control">
+                    <p class="has-text-weight-semibold">{{.SystemInfo.OSEdition}}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="column is-half">
+            <div class="field">
+                <label class="label is-small has-text-grey">
+                    <i class="fas fa-user mr-1"></i> Registered Owner
+                </label>
+                <div class="control">
+                    <p class="has-text-weight-semibold">{{.SystemInfo.RegisteredOwner}}</p>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label is-small has-text-grey">
+                    <i class="fas fa-building mr-1"></i> Organization
+                </label>
+                <div class="control">
+                    <p class="has-text-weight-semibold">{{.SystemInfo.RegisteredOrg}}</p>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label is-small has-text-grey">
+                    <i class="fas fa-microchip mr-1"></i> Architecture
+                </label>
+                <div class="control">
+                    <p class="has-text-weight-semibold">{{.SystemInfo.Architecture}}</p>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label is-small has-text-grey">
+                    <i class="fas fa-folder mr-1"></i> System Root
+                </label>
+                <div class="control">
+                    <p class="has-text-weight-semibold"><code>{{.SystemInfo.SystemRoot}}</code></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Timestamp -->
+    <div class="mt-3 has-background-light" style="padding: 0.75rem; border-radius: 0.5rem;">
+        <p class="is-size-7 has-text-grey mb-0">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fas fa-clock"></i>
+                </span>
+                <span><strong>Scan Generated:</strong> {{.GeneratedAt.Format "Monday, January 2, 2006 at 3:04:05 PM MST"}}</span>
+            </span>
+        </p>
+    </div>
+</div>
+{{end}}

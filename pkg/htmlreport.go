@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"html/template"
@@ -9,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"golang.org/x/sys/windows/registry"
 )
 
 //go:embed templates/html templates/css
@@ -16,12 +19,13 @@ var templateFS embed.FS
 
 // HTMLReport generates HTML reports from registry scan results using templates
 type HTMLReport struct {
-	Title      string
-	Timestamp  time.Time
-	Results    map[string]ReportResult
-	OutputPath string
-	Metadata   ReportMetadata
-	tmpl       *template.Template
+	Title         string
+	Timestamp     time.Time
+	Results       map[string]ReportResult
+	OutputPath    string
+	Metadata      ReportMetadata
+	tmpl          *template.Template
+	registryReader *RegistryReader // Added for system info gathering
 }
 
 // ReportResult represents a single query result
@@ -163,6 +167,9 @@ func (r *HTMLReport) buildReportData() *ReportData {
 	// Get machine name
 	machineName, _ := os.Hostname()
 
+	// Gather system information for evidence panel
+	systemInfo := r.gatherSystemInfo()
+
 	// Convert Results map to QueryResult slice
 	queryResults := make([]QueryResult, 0, len(r.Results))
 	for name, result := range r.Results {
@@ -204,6 +211,7 @@ func (r *HTMLReport) buildReportData() *ReportData {
 		Metadata:    r.Metadata,
 		GeneratedAt: r.Timestamp,
 		MachineName: machineName,
+		SystemInfo:  systemInfo,
 		Results:     queryResults,
 	}
 
@@ -211,6 +219,103 @@ func (r *HTMLReport) buildReportData() *ReportData {
 	data.CalculateStats()
 
 	return data
+}
+
+// SetRegistryReader sets the registry reader for system info gathering
+func (r *HTMLReport) SetRegistryReader(reader *RegistryReader) {
+	r.registryReader = reader
+}
+
+// gatherSystemInfo collects system information for the evidence panel
+func (r *HTMLReport) gatherSystemInfo() SystemInfo {
+	hostname, _ := os.Hostname()
+
+	info := SystemInfo{
+		Hostname:        hostname,
+		OSProductName:   os.Getenv("OS"),
+		OSEdition:       "N/A",
+		OSBuildNumber:   "N/A",
+		OSVersion:       "N/A",
+		RegisteredOwner: os.Getenv("USERNAME"),
+		RegisteredOrg:   os.Getenv("USERDOMAIN"),
+		Architecture:    os.Getenv("PROCESSOR_ARCHITECTURE"),
+		InstallDate:     "N/A",
+		SystemRoot:      os.Getenv("SystemRoot"),
+	}
+
+	// If registry reader available, get detailed info from registry
+	if r.registryReader != nil {
+		info = r.gatherDetailedSystemInfo()
+	}
+
+	return info
+}
+
+// gatherDetailedSystemInfo uses registry reader to get comprehensive system info
+func (r *HTMLReport) gatherDetailedSystemInfo() SystemInfo {
+	ctx := context.Background()
+	info := SystemInfo{}
+
+	// Helper to safely read registry values
+	readValue := func(path, valueName string) string {
+		value, err := r.registryReader.ReadString(ctx, registry.LOCAL_MACHINE, path, valueName)
+		if err != nil {
+			return "N/A"
+		}
+		return value
+	}
+
+	// Gather comprehensive system information
+	info.Hostname = readValue(
+		`SYSTEM\CurrentControlSet\Control\ComputerName\ActiveComputerName`,
+		"ComputerName")
+
+	info.OSProductName = readValue(
+		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`,
+		"ProductName")
+
+	info.OSEdition = readValue(
+		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`,
+		"EditionID")
+
+	info.OSBuildNumber = readValue(
+		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`,
+		"CurrentBuild")
+
+	info.OSVersion = readValue(
+		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`,
+		"CurrentVersion")
+
+	info.RegisteredOwner = readValue(
+		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`,
+		"RegisteredOwner")
+
+	info.RegisteredOrg = readValue(
+		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`,
+		"RegisteredOrganization")
+
+	info.SystemRoot = readValue(
+		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`,
+		"SystemRoot")
+
+	// Get architecture
+	arch := os.Getenv("PROCESSOR_ARCHITECTURE")
+	if arch == "" {
+		arch = readValue(
+			`SYSTEM\CurrentControlSet\Control\Session Manager\Environment`,
+			"PROCESSOR_ARCHITECTURE")
+	}
+	info.Architecture = arch
+
+	// Get install date (this is a DWORD unix timestamp)
+	installDateStr := readValue(
+		`SOFTWARE\Microsoft\Windows NT\CurrentVersion`,
+		"InstallDate")
+	if installDateStr != "N/A" {
+		info.InstallDate = installDateStr
+	}
+
+	return info
 }
 
 // Helper functions
