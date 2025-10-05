@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-func TestLoadConfig(t *testing.T) {
+func TestLoadRegistryConfig(t *testing.T) {
 	// Create a temporary config file
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "test_config.json")
@@ -33,9 +33,9 @@ func TestLoadConfig(t *testing.T) {
 	}
 
 	// Test loading the config
-	config, err := LoadConfig(configPath)
+	config, err := LoadRegistryConfig(configPath)
 	if err != nil {
-		t.Fatalf("LoadConfig() error = %v", err)
+		t.Fatalf("LoadRegistryConfig() error = %v", err)
 	}
 
 	if config.Version != "1.0" {
@@ -65,22 +65,22 @@ func TestLoadConfig_InvalidJSON(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	_, err = LoadConfig(configPath)
+	_, err = LoadRegistryConfig(configPath)
 	if err == nil {
-		t.Error("LoadConfig() should return error for invalid JSON")
+		t.Error("LoadRegistryConfig() should return error for invalid JSON")
 	}
 }
 
 func TestLoadConfig_FileNotExist(t *testing.T) {
-	_, err := LoadConfig("nonexistent_file.json")
+	_, err := LoadRegistryConfig("nonexistent_file.json")
 	if err == nil {
-		t.Error("LoadConfig() should return error when file doesn't exist")
+		t.Error("LoadRegistryConfig() should return error when file doesn't exist")
 	}
 }
 
 func TestLoadConfig_ActualConfigFile(t *testing.T) {
 	// Test with the actual config file in the project
-	config, err := LoadConfig("../configs/registry_operations.json")
+	config, err := LoadRegistryConfig("../configs/registry_operations.json")
 	if err != nil {
 		t.Skipf("Skipping: actual config file not found: %v", err)
 	}
@@ -149,9 +149,9 @@ func TestRegistryQuery_WriteTypes(t *testing.T) {
 		t.Fatalf("Failed to create test config: %v", err)
 	}
 
-	config, err := LoadConfig(configPath)
+	config, err := LoadRegistryConfig(configPath)
 	if err != nil {
-		t.Fatalf("LoadConfig() error = %v", err)
+		t.Fatalf("LoadRegistryConfig() error = %v", err)
 	}
 
 	// Verify write configurations

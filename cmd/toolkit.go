@@ -81,20 +81,43 @@ func main() {
 	}
 	exeDir := filepath.Dir(exePath)
 
-	// Apply CLI flag overrides to config
+	// Apply CLI flag overrides to config (with validation)
 	if *outputDir != "" {
+		// Validate directory path
+		if err := pkg.ValidateFilePath(*outputDir, nil); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Invalid output directory: %v\n", err)
+			os.Exit(1)
+		}
 		cfg.Reports.OutputPath = *outputDir
 	}
 	if *logsDir != "" {
+		if err := pkg.ValidateFilePath(*logsDir, nil); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Invalid logs directory: %v\n", err)
+			os.Exit(1)
+		}
 		cfg.Logging.OutputPath = *logsDir
 	}
 	if *evidenceDir != "" {
+		if err := pkg.ValidateFilePath(*evidenceDir, nil); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Invalid evidence directory: %v\n", err)
+			os.Exit(1)
+		}
 		cfg.Reports.EvidencePath = *evidenceDir
 	}
 	if *timeout > 0 {
+		// Validate timeout is reasonable (1s to 5 minutes)
+		if *timeout < time.Second || *timeout > 5*time.Minute {
+			fmt.Fprintf(os.Stderr, "Error: Timeout must be between 1s and 5m (got %v)\n", *timeout)
+			os.Exit(1)
+		}
 		cfg.Server.ReadTimeout = *timeout
 	}
 	if *logLevel != "" {
+		validLevels := map[string]bool{"debug": true, "info": true, "warn": true, "error": true}
+		if !validLevels[strings.ToLower(*logLevel)] {
+			fmt.Fprintf(os.Stderr, "Error: Invalid log level '%s' (must be debug, info, warn, or error)\n", *logLevel)
+			os.Exit(1)
+		}
 		cfg.Logging.Level = *logLevel
 	}
 
@@ -362,10 +385,22 @@ func (app *App) loadAvailableReports() ([]ReportInfo, error) {
 func (app *App) executeReport(configFile string) bool {
 	configPath := filepath.Join(app.reportsDir, configFile)
 
+	// Validate config file path
+	if err := pkg.ValidateFilePath(configFile, []string{".json"}); err != nil {
+		fmt.Printf("  ❌  Invalid config file path: %v\n", err)
+		return false
+	}
+
 	// Load config
 	config, err := pkg.LoadRegistryConfig(configPath)
 	if err != nil {
 		fmt.Printf("  ❌  Failed to load config: %v\n", err)
+		return false
+	}
+
+	// Validate config structure and all queries
+	if err := pkg.ValidateConfig(config); err != nil {
+		fmt.Printf("  ❌  Config validation failed: %v\n", err)
 		return false
 	}
 
@@ -406,6 +441,27 @@ func (app *App) executeReport(configFile string) bool {
 	// Execute queries
 	for _, query := range config.Queries {
 		if query.Operation != "read" {
+			continue
+		}
+
+		// Additional runtime validation with security policy enforcement
+		if err := pkg.ValidateAgainstDenyList(query.Path, app.config.Security.DenyRegistryPaths); err != nil {
+			fmt.Printf("  🔒  [%s] Blocked by security policy: %s\n", query.Name, query.Path)
+			htmlReport.AddResult(query.Name, query.Description, nil, err)
+			if evidenceLogger != nil {
+				evidenceLogger.LogResult(query.Name, query.Description, query.Path, query.ValueName, nil, err)
+			}
+			errorCount++
+			continue
+		}
+
+		if err := pkg.ValidateAgainstAllowList(query.RootKey, app.config.Security.AllowedRegistryRoots); err != nil {
+			fmt.Printf("  🔒  [%s] Root key not allowed: %s\n", query.Name, query.RootKey)
+			htmlReport.AddResult(query.Name, query.Description, nil, err)
+			if evidenceLogger != nil {
+				evidenceLogger.LogResult(query.Name, query.Description, query.Path, query.ValueName, nil, err)
+			}
+			errorCount++
 			continue
 		}
 
@@ -934,6 +990,15 @@ func (app *App) runReportCLI(reportName string, quiet bool) bool {
 func (app *App) executeReportQuiet(configFile string, quiet bool) bool {
 	configPath := filepath.Join(app.reportsDir, configFile)
 
+	// Validate config file path
+	if err := pkg.ValidateFilePath(configFile, []string{".json"}); err != nil {
+		if !quiet {
+			fmt.Printf("Invalid config file path: %v\n", err)
+		}
+		slog.Error("Invalid config file path", "file", configFile, "error", err)
+		return false
+	}
+
 	// Load config
 	config, err := pkg.LoadRegistryConfig(configPath)
 	if err != nil {
@@ -941,6 +1006,15 @@ func (app *App) executeReportQuiet(configFile string, quiet bool) bool {
 			fmt.Printf("Failed to load config: %v\n", err)
 		}
 		slog.Error("Failed to load config", "file", configFile, "error", err)
+		return false
+	}
+
+	// Validate config structure
+	if err := pkg.ValidateConfig(config); err != nil {
+		if !quiet {
+			fmt.Printf("Config validation failed: %v\n", err)
+		}
+		slog.Error("Config validation failed", "file", configFile, "error", err)
 		return false
 	}
 
@@ -982,6 +1056,33 @@ func (app *App) executeReportQuiet(configFile string, quiet bool) bool {
 	// Execute queries
 	for _, query := range config.Queries {
 		if query.Operation != "read" {
+			continue
+		}
+
+		// Security policy enforcement
+		if err := pkg.ValidateAgainstDenyList(query.Path, app.config.Security.DenyRegistryPaths); err != nil {
+			if !quiet {
+				fmt.Printf("  Blocked by security policy [%s]: %s\n", query.Name, query.Path)
+			}
+			slog.Warn("Query blocked by security policy", "query", query.Name, "path", query.Path)
+			htmlReport.AddResult(query.Name, query.Description, nil, err)
+			if evidenceLogger != nil {
+				evidenceLogger.LogResult(query.Name, query.Description, query.Path, query.ValueName, nil, err)
+			}
+			errorCount++
+			continue
+		}
+
+		if err := pkg.ValidateAgainstAllowList(query.RootKey, app.config.Security.AllowedRegistryRoots); err != nil {
+			if !quiet {
+				fmt.Printf("  Root key not allowed [%s]: %s\n", query.Name, query.RootKey)
+			}
+			slog.Warn("Root key not allowed", "query", query.Name, "root_key", query.RootKey)
+			htmlReport.AddResult(query.Name, query.Description, nil, err)
+			if evidenceLogger != nil {
+				evidenceLogger.LogResult(query.Name, query.Description, query.Path, query.ValueName, nil, err)
+			}
+			errorCount++
 			continue
 		}
 

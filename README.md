@@ -5,6 +5,10 @@
 
 Welcome to the Compliance Toolkit! This guide will help you get started with Windows registry compliance scanning.
 
+Quick Build Command - 
+```bash
+go build -ldflags="-s -w" -o ComplianceToolkit.exe ./cmd/toolkit.go
+```
 ---
 
 ## 📚 Documentation Index
