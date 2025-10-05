@@ -367,16 +367,17 @@ func ValidateAgainstDenyList(path string, denyList []string) error {
 }
 
 // ValidateAgainstAllowList checks if a root key is in the allow list
+// Handles both short forms (HKLM) and long forms (HKEY_LOCAL_MACHINE)
 func ValidateAgainstAllowList(rootKey string, allowList []string) error {
 	if len(allowList) == 0 {
 		// Empty allow list means all are allowed
 		return nil
 	}
 
-	normalizedRootKey := strings.ToUpper(strings.TrimSpace(rootKey))
+	normalizedRootKey := normalizeRootKey(rootKey)
 
 	for _, allowed := range allowList {
-		normalizedAllowed := strings.ToUpper(strings.TrimSpace(allowed))
+		normalizedAllowed := normalizeRootKey(allowed)
 		if normalizedRootKey == normalizedAllowed {
 			return nil
 		}
@@ -388,6 +389,26 @@ func ValidateAgainstAllowList(rootKey string, allowList []string) error {
 		Message: fmt.Sprintf("root key not in allow list: %v", allowList),
 		Code:    ErrCodeInvalidRootKey,
 	}
+}
+
+// normalizeRootKey converts both short and long forms to a canonical form
+func normalizeRootKey(rootKey string) string {
+	normalized := strings.ToUpper(strings.TrimSpace(rootKey))
+
+	// Map short forms to long forms for consistent comparison
+	shortToLong := map[string]string{
+		"HKLM": "HKEY_LOCAL_MACHINE",
+		"HKCU": "HKEY_CURRENT_USER",
+		"HKCR": "HKEY_CLASSES_ROOT",
+		"HKU":  "HKEY_USERS",
+		"HKCC": "HKEY_CURRENT_CONFIG",
+	}
+
+	if longForm, exists := shortToLong[normalized]; exists {
+		return longForm
+	}
+
+	return normalized
 }
 
 // ValidateFilePath validates a file path for safety
