@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
@@ -15,6 +16,7 @@ type EvidenceLogger struct {
 	LogPath   string
 	StartTime time.Time
 	Evidence  *ComplianceEvidence
+	logger    *slog.Logger // Added for dependency injection
 }
 
 // ComplianceEvidence contains all audit trail information
@@ -76,8 +78,8 @@ type ScanSummary struct {
 	Timestamp      time.Time `json:"timestamp"`
 }
 
-// NewEvidenceLogger creates a new evidence logger
-func NewEvidenceLogger(logDir, reportType string) (*EvidenceLogger, error) {
+// NewEvidenceLogger creates a new evidence logger with dependency injection
+func NewEvidenceLogger(logDir, reportType string, logger *slog.Logger) (*EvidenceLogger, error) {
 	timestamp := time.Now()
 	scanID := fmt.Sprintf("SCAN_%s", timestamp.Format("20060102_150405"))
 
@@ -105,11 +107,12 @@ func NewEvidenceLogger(logDir, reportType string) (*EvidenceLogger, error) {
 		LogPath:   logPath,
 		StartTime: timestamp,
 		Evidence:  evidence,
+		logger:    logger,
 	}, nil
 }
 
 // GatherMachineInfo collects system information for evidence
-func (e *EvidenceLogger) GatherMachineInfo(reader *RegistryReader) error {
+func (e *EvidenceLogger) GatherMachineInfo(reader RegistryService) error {
 	ctx := context.Background()
 	info := MachineInfo{
 		ScanTimestamp: time.Now(),
@@ -244,6 +247,11 @@ func (e *EvidenceLogger) Finalize() error {
 	}
 
 	return nil
+}
+
+// GetLogPath returns the log file path
+func (e *EvidenceLogger) GetLogPath() string {
+	return e.LogPath
 }
 
 // GetSummaryText returns a human-readable summary

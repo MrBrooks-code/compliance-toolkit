@@ -315,18 +315,15 @@ func (app *App) executeReport(configFile string) bool {
 		}
 	}
 
-	htmlReport := pkg.NewHTMLReport(reportName, app.outputDir)
+	htmlReport := pkg.NewHTMLReport(reportName, app.outputDir, slog.Default(), app.reader)
 
 	// Add metadata to HTML report
-	htmlReport.Metadata = config.Metadata
-
-	// Set registry reader for system info gathering
-	htmlReport.SetRegistryReader(app.reader)
+	htmlReport.SetMetadata(config.Metadata)
 
 	// Create evidence logger for compliance audit trail
 	reportType := filepath.Base(configFile)
 	reportType = reportType[:len(reportType)-5] // Remove .json extension
-	evidenceLogger, err := pkg.NewEvidenceLogger(app.evidenceDir, reportType)
+	evidenceLogger, err := pkg.NewEvidenceLogger(app.evidenceDir, reportType, slog.Default())
 	if err != nil {
 		fmt.Printf("  ⚠️  Warning: Could not create evidence log: %v\n", err)
 	} else {
@@ -855,16 +852,13 @@ func (app *App) executeReportQuiet(configFile string, quiet bool) bool {
 		}
 	}
 
-	htmlReport := pkg.NewHTMLReport(reportName, app.outputDir)
-	htmlReport.Metadata = config.Metadata
-
-	// Set registry reader for system info gathering
-	htmlReport.SetRegistryReader(app.reader)
+	htmlReport := pkg.NewHTMLReport(reportName, app.outputDir, slog.Default(), app.reader)
+	htmlReport.SetMetadata(config.Metadata)
 
 	// Create evidence logger
 	reportType := filepath.Base(configFile)
 	reportType = reportType[:len(reportType)-5] // Remove .json extension
-	evidenceLogger, err := pkg.NewEvidenceLogger(app.evidenceDir, reportType)
+	evidenceLogger, err := pkg.NewEvidenceLogger(app.evidenceDir, reportType, slog.Default())
 	if err != nil {
 		if !quiet {
 			fmt.Printf("Warning: Could not create evidence log: %v\n", err)
