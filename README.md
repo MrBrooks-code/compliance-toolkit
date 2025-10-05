@@ -1,18 +1,18 @@
-# Windows Registry Reader - Production-Grade Library
+# Compliance Toolkit - GoLang Registry Compliance Toolkit
 
 A production-ready Go library for reading Windows Registry values with context support, structured logging, and comprehensive error handling.
 
-## ✨ Features
+##  Features
 
-- 🎯 **Context-Aware** - Full cancellation and timeout support
-- 📊 **Structured Logging** - JSON logs with operation timing (`log/slog`)
-- ⚡ **High Performance** - Batch operations 3x faster than sequential reads
-- 🛡️ **Type-Safe Errors** - Rich error context with operation details
-- 🧪 **Well-Tested** - 80%+ code coverage with integration tests
-- 🔧 **Configurable** - Functional options pattern + JSON config support
-- 🔒 **Read-Only** - Defensive security, no write operations
+-  **Context-Aware** - Full cancellation and timeout support
+-  **Structured Logging** - JSON logs with operation timing (`log/slog`)
+-  **High Performance** - Batch operations 3x faster than sequential reads
+-  **Type-Safe Errors** - Rich error context with operation details
+-  **Well-Tested** - 80%+ code coverage with integration tests
+-  **Configurable** - Functional options pattern + JSON config support
 
-## 🚀 Quick Start
+
+##  Quick Start
 
 ```go
 package main
@@ -56,13 +56,13 @@ func main() {
 }
 ```
 
-## 📦 Installation
+##  Installation
 
 ```bash
 go get compliancetoolkit/pkg
 ```
 
-## 🔥 Advanced Features
+##  Advanced Features
 
 ### Batch Operations (3x Faster)
 
@@ -118,7 +118,7 @@ if err != nil {
 }
 ```
 
-## 📊 Performance
+##  Performance
 
 ```
 BenchmarkReadString-16    	94670	  12818 ns/op	   920 B/op	  15 allocs/op
@@ -130,7 +130,7 @@ BenchmarkBatchRead-16     	69456	  18076 ns/op	   992 B/op	  21 allocs/op
 - Batch: ~18ms (1 open/close cycle)
 - **3.3x faster** ⚡
 
-## 🧪 Testing
+##  Testing
 
 ```bash
 # Run all tests
@@ -169,7 +169,7 @@ go test ./pkg -run Integration -v
 - `IsNotExist(err)` - Check if key/value doesn't exist
 - `RegistryError` - Rich error type with operation context
 
-## 🏗️ Architecture
+##  Architecture
 
 ### Context Pattern
 All operations use goroutines + select for context cancellation:
@@ -196,7 +196,7 @@ JSON logs with operation metrics:
 }
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 cmd/
@@ -215,21 +215,14 @@ docs/
   COMPARISON.md              - Before/after comparison
 ```
 
-## 🔐 Security
+##  Security
 
 - ✅ **Read-only operations** - No write capability
 - ✅ **Timeout protection** - Prevents hanging on registry locks
 - ✅ **Resource cleanup** - Deferred Close() on all key handles
 - ✅ **Error transparency** - No information leakage
 
-## 📚 Documentation
-
-- [CLAUDE.md](CLAUDE.md) - Architecture and development guide
-- [IMPROVEMENTS.md](IMPROVEMENTS.md) - Detailed changelog
-- [REFACTOR_SUMMARY.md](REFACTOR_SUMMARY.md) - 10x refactor summary
-- [COMPARISON.md](COMPARISON.md) - Before/after comparison
-
-## 🎯 Use Cases
+##  Use Cases
 
 - **Compliance Scanning** - Read system configuration
 - **Security Auditing** - Gather Windows settings
@@ -281,4 +274,3 @@ This library follows Google Go standards:
 
 ---
 
-**Built with ❤️ for defensive security and compliance scanning**
