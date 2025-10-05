@@ -1,0 +1,118 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "report_title": "Network Configuration Report",
+    "report_version": "1.0.0",
+    "author": "Compliance Toolkit",
+    "description": "Network settings, DNS, proxy, and connectivity configuration",
+    "category": "Network Security",
+    "last_updated": "2025-01-04",
+    "compliance": "Network Security Standards"
+  },
+  "queries": [
+    {
+      "name": "computer_hostname",
+      "description": "Computer Hostname",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ActiveComputerName",
+      "value_name": "ComputerName",
+      "operation": "read"
+    },
+    {
+      "name": "dns_hostname",
+      "description": "DNS Hostname",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
+      "value_name": "Hostname",
+      "operation": "read"
+    },
+    {
+      "name": "dns_domain",
+      "description": "DNS Domain Name",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
+      "value_name": "Domain",
+      "operation": "read"
+    },
+    {
+      "name": "dns_servers",
+      "description": "DNS Server List",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
+      "value_name": "NameServer",
+      "operation": "read"
+    },
+    {
+      "name": "dhcp_enabled",
+      "description": "DHCP Enabled Status",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
+      "value_name": "EnableDHCP",
+      "operation": "read"
+    },
+    {
+      "name": "tcp_parameters",
+      "description": "All TCP/IP Parameters",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters",
+      "operation": "read",
+      "read_all": true
+    },
+    {
+      "name": "proxy_enabled",
+      "description": "Internet Proxy Enabled (Current User)",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
+      "value_name": "ProxyEnable",
+      "operation": "read"
+    },
+    {
+      "name": "proxy_server",
+      "description": "Proxy Server Address (Current User)",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
+      "value_name": "ProxyServer",
+      "operation": "read"
+    },
+    {
+      "name": "proxy_override",
+      "description": "Proxy Override List (Current User)",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
+      "value_name": "ProxyOverride",
+      "operation": "read"
+    },
+    {
+      "name": "network_location_awareness",
+      "description": "Network Location Awareness Settings",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Policies\\Microsoft\\Windows\\NetworkConnectivityStatusIndicator",
+      "operation": "read",
+      "read_all": true
+    },
+    {
+      "name": "ipv6_enabled",
+      "description": "IPv6 Configuration",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters",
+      "value_name": "DisabledComponents",
+      "operation": "read"
+    },
+    {
+      "name": "wifi_auto_connect",
+      "description": "WiFi Auto-Connect Setting",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\WcmSvc\\wifinetworkmanager\\config",
+      "value_name": "AutoConnectAllowedOEM",
+      "operation": "read"
+    },
+    {
+      "name": "network_discovery",
+      "description": "Network Discovery Status",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Network\\NewNetworkWindowOff",
+      "operation": "read",
+      "read_all": true
+    }
+  ]
+}

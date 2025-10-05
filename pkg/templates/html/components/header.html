@@ -1,0 +1,72 @@
+{{define "header"}}
+<div class="box has-background-primary-light">
+    <!-- Title Section -->
+    <div class="mb-4">
+        <h1 class="title is-2 mb-2">
+            <span class="icon-text">
+                <span class="icon has-text-primary">
+                    <i class="fas fa-shield-alt"></i>
+                </span>
+                <span>Compliance Toolkit - {{.Metadata.ReportTitle}}</span>
+            </span>
+        </h1>
+        {{if .Metadata.Description}}
+        <p class="subtitle is-5 mb-0">{{.Metadata.Description}}</p>
+        {{end}}
+    </div>
+
+    <!-- Tags Section -->
+    <div class="mb-3">
+        <div class="tags are-medium">
+            {{if .Metadata.Category}}
+            <span class="tag is-info">
+                <span class="icon">
+                    <i class="fas fa-tag"></i>
+                </span>
+                <span>{{.Metadata.Category}}</span>
+            </span>
+            {{end}}
+            {{if .Metadata.Compliance}}
+            <span class="tag is-primary">
+                <span class="icon">
+                    <i class="fas fa-check-circle"></i>
+                </span>
+                <span>{{.Metadata.Compliance}}</span>
+            </span>
+            {{end}}
+            {{if .Metadata.ReportVersion}}
+            <span class="tag is-light">
+                <span class="icon">
+                    <i class="fas fa-code-branch"></i>
+                </span>
+                <span>v{{.Metadata.ReportVersion}}</span>
+            </span>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Metadata Section -->
+    {{if .Metadata.LastUpdated}}
+    <div class="content is-small mb-0">
+        <p class="has-text-grey mb-0">
+            <span class="icon-text">
+                <span class="icon">
+                    <i class="fas fa-calendar"></i>
+                </span>
+                <span>Last Updated: {{.Metadata.LastUpdated}}</span>
+            </span>
+            {{if .Metadata.Author}}
+            <span class="ml-4">
+                <span class="icon-text">
+                    <span class="icon">
+                        <i class="fas fa-user"></i>
+                    </span>
+                    <span>Author: {{.Metadata.Author}}</span>
+                </span>
+            </span>
+            {{end}}
+        </p>
+    </div>
+    {{end}}
+</div>
+{{end}}

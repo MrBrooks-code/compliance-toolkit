@@ -1,0 +1,53 @@
+{{define "kpi-cards"}}
+<!-- Compliance Rate KPI -->
+<div class="column is-one-quarter">
+    <div class="box has-text-centered kpi-card">
+        <div class="icon-text is-flex-direction-column">
+            <span class="icon has-text-{{if ge .ComplianceRate 80.0}}success{{else if ge .ComplianceRate 60.0}}warning{{else}}danger{{end}}" style="font-size: 3rem;">
+                <i class="fas fa-chart-pie"></i>
+            </span>
+            <p class="title is-1 mt-3">{{printf "%.0f" .ComplianceRate}}%</p>
+            <p class="subtitle is-6 has-text-grey">Compliance Rate</p>
+        </div>
+    </div>
+</div>
+
+<!-- Total Checks KPI -->
+<div class="column is-one-quarter">
+    <div class="box has-text-centered kpi-card">
+        <div class="icon-text is-flex-direction-column">
+            <span class="icon has-text-info" style="font-size: 3rem;">
+                <i class="fas fa-tasks"></i>
+            </span>
+            <p class="title is-1 mt-3">{{.TotalQueries}}</p>
+            <p class="subtitle is-6 has-text-grey">Total Checks</p>
+        </div>
+    </div>
+</div>
+
+<!-- Passed Checks KPI -->
+<div class="column is-one-quarter">
+    <div class="box has-text-centered kpi-card">
+        <div class="icon-text is-flex-direction-column">
+            <span class="icon has-text-success" style="font-size: 3rem;">
+                <i class="fas fa-check-circle"></i>
+            </span>
+            <p class="title is-1 mt-3">{{.PassedQueries}}</p>
+            <p class="subtitle is-6 has-text-grey">Passed</p>
+        </div>
+    </div>
+</div>
+
+<!-- Failed Checks KPI -->
+<div class="column is-one-quarter">
+    <div class="box has-text-centered kpi-card">
+        <div class="icon-text is-flex-direction-column">
+            <span class="icon has-text-danger" style="font-size: 3rem;">
+                <i class="fas fa-times-circle"></i>
+            </span>
+            <p class="title is-1 mt-3">{{.FailedQueries}}</p>
+            <p class="subtitle is-6 has-text-grey">Failed</p>
+        </div>
+    </div>
+</div>
+{{end}}

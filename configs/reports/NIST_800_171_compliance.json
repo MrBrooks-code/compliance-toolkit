@@ -1,0 +1,131 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "report_title": "NIST 800-171 Security Compliance Report",
+    "report_version": "2.0.0",
+    "author": "Compliance Toolkit",
+    "description": "NIST 800-171 security controls validation for Controlled Unclassified Information (CUI)",
+    "category": "Security & Compliance",
+    "last_updated": "2025-01-04",
+    "compliance": "NIST 800-171 Rev 2"
+  },
+  "queries": [
+    {
+      "name": "uac_enabled",
+      "description": "User Account Control (UAC) Status",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+      "value_name": "EnableLUA",
+      "operation": "read",
+      "expected_value": "1 (Enabled)"
+    },
+    {
+      "name": "uac_consent_prompt_admin",
+      "description": "UAC Consent Prompt Behavior for Admins",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System",
+      "value_name": "ConsentPromptBehaviorAdmin",
+      "operation": "read",
+      "expected_value": "2 (Prompt for consent on secure desktop)"
+    },
+    {
+      "name": "windows_defender_enabled",
+      "description": "Windows Defender Real-Time Protection",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows Defender\\Real-Time Protection",
+      "value_name": "DisableRealtimeMonitoring",
+      "operation": "read",
+      "expected_value": "0 (Not Disabled)"
+    },
+    {
+      "name": "firewall_domain_profile",
+      "description": "Windows Firewall - Domain Profile Status",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\DomainProfile",
+      "value_name": "EnableFirewall",
+      "operation": "read",
+      "expected_value": "1 (Enabled)"
+    },
+    {
+      "name": "firewall_standard_profile",
+      "description": "Windows Firewall - Standard Profile Status",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\StandardProfile",
+      "value_name": "EnableFirewall",
+      "operation": "read",
+      "expected_value": "1 (Enabled)"
+    },
+    {
+      "name": "firewall_public_profile",
+      "description": "Windows Firewall - Public Profile Status",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile",
+      "value_name": "EnableFirewall",
+      "operation": "read",
+      "expected_value": "1 (Enabled)"
+    },
+    {
+      "name": "auto_update_enabled",
+      "description": "Windows Auto Update Configuration",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU",
+      "value_name": "NoAutoUpdate",
+      "operation": "read",
+      "expected_value": "0 or not present (Auto Update Enabled)"
+    },
+    {
+      "name": "smb_v1_enabled",
+      "description": "SMBv1 Protocol Status (should be disabled)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters",
+      "value_name": "SMB1",
+      "operation": "read",
+      "expected_value": "0 or not present (Disabled)"
+    },
+    {
+      "name": "lsa_protection",
+      "description": "LSA Protection (Credential Guard)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Lsa",
+      "value_name": "RunAsPPL",
+      "operation": "read",
+      "expected_value": "1 (Enabled)"
+    },
+    {
+      "name": "remote_desktop_enabled",
+      "description": "Remote Desktop Status",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Terminal Server",
+      "value_name": "fDenyTSConnections",
+      "operation": "read",
+      "expected_value": "1 (Disabled) or 0 (Enabled with NLA)"
+    },
+    {
+      "name": "nla_required",
+      "description": "Network Level Authentication Required for RDP",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp",
+      "value_name": "UserAuthentication",
+      "operation": "read",
+      "expected_value": "1 (Required)"
+    },
+    {
+      "name": "secure_boot_enabled",
+      "description": "Secure Boot Configuration",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecureBoot\\State",
+      "value_name": "UEFISecureBootEnabled",
+      "operation": "read",
+      "expected_value": "1 (Enabled)"
+    },
+    {
+      "name": "bitlocker_status",
+      "description": "BitLocker Drive Encryption Status",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Policies\\Microsoft\\FVE",
+      "operation": "read",
+      "read_all": true,
+      "expected_value": "Encryption policies configured"
+    }
+  ]
+}

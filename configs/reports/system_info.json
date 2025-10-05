@@ -1,0 +1,102 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "report_title": "System Information Reporteleone",
+    "report_version": "1.0.0",
+    "author": "Compliance Toolkit",
+    "description": "Comprehensive Windows system configuration and version information",
+    "category": "System Inventory",
+    "last_updated": "2025-01-04",
+    "compliance": "General IT Asset Management"
+  },
+  "queries": [
+    {
+      "name": "os_product_name",
+      "description": "Windows Product Name",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      "value_name": "ProductName",
+      "operation": "read"
+    },
+    {
+      "name": "os_edition",
+      "description": "Windows Edition ID",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      "value_name": "EditionID",
+      "operation": "read"
+    },
+    {
+      "name": "os_build_number",
+      "description": "Windows Build Number",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      "value_name": "CurrentBuild",
+      "operation": "read"
+    },
+    {
+      "name": "os_build_lab",
+      "description": "Windows Build Lab String",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      "value_name": "BuildLab",
+      "operation": "read"
+    },
+    {
+      "name": "os_install_date",
+      "description": "Windows Installation Date",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      "value_name": "InstallDate",
+      "operation": "read"
+    },
+    {
+      "name": "computer_name",
+      "description": "Computer Name",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\ComputerName\\ActiveComputerName",
+      "value_name": "ComputerName",
+      "operation": "read"
+    },
+    {
+      "name": "system_root",
+      "description": "Windows System Root Directory",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      "value_name": "SystemRoot",
+      "operation": "read"
+    },
+    {
+      "name": "registered_owner",
+      "description": "Registered Owner",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      "value_name": "RegisteredOwner",
+      "operation": "read"
+    },
+    {
+      "name": "registered_organization",
+      "description": "Registered Organization",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      "value_name": "RegisteredOrganization",
+      "operation": "read"
+    },
+    {
+      "name": "processor_architecture",
+      "description": "Processor Architecture",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment",
+      "value_name": "PROCESSOR_ARCHITECTURE",
+      "operation": "read"
+    },
+    {
+      "name": "all_version_info",
+      "description": "All Windows Version Registry Values",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      "operation": "read",
+      "read_all": true
+    }
+  ]
+}

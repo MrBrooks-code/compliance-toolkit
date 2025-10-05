@@ -1,0 +1,329 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "report_title": "FIPS 140-2 Compliance Report",
+    "report_version": "1.0.0",
+    "author": "Compliance Toolkit",
+    "description": "Federal Information Processing Standard (FIPS) 140-2 cryptographic module validation",
+    "category": "Security & Compliance",
+    "last_updated": "2025-01-04",
+    "compliance": "FIPS 140-2"
+  },
+  "queries": [
+    {
+      "name": "fips_algorithm_policy",
+      "description": "FIPS Algorithm Policy Enabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Lsa\\FipsAlgorithmPolicy",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 (Enabled)"
+    },
+    {
+      "name": "fips_algorithm_policy_mdu",
+      "description": "FIPS Algorithm Policy MDU Enabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Lsa\\FipsAlgorithmPolicy",
+      "value_name": "MDUEnabled",
+      "operation": "read",
+      "expected_value": "1 (Enabled)"
+    },
+    {
+      "name": "schannel_fips_mode",
+      "description": "Schannel FIPS Mode Configuration",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Lsa\\FipsAlgorithmPolicy",
+      "operation": "read",
+      "read_all": true,
+      "expected_value": "Enabled=1"
+    },
+    {
+      "name": "tls_1_2_enabled_client",
+      "description": "TLS 1.2 Client Enabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.2\\Client",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 or not present (Enabled)"
+    },
+    {
+      "name": "tls_1_2_enabled_server",
+      "description": "TLS 1.2 Server Enabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.2\\Server",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 or not present (Enabled)"
+    },
+    {
+      "name": "tls_1_2_disabledbydefault_client",
+      "description": "TLS 1.2 Client Not Disabled By Default",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.2\\Client",
+      "value_name": "DisabledByDefault",
+      "operation": "read",
+      "expected_value": "0 or not present (Not Disabled)"
+    },
+    {
+      "name": "tls_1_2_disabledbydefault_server",
+      "description": "TLS 1.2 Server Not Disabled By Default",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.2\\Server",
+      "value_name": "DisabledByDefault",
+      "operation": "read",
+      "expected_value": "0 or not present (Not Disabled)"
+    },
+    {
+      "name": "ssl_2_0_disabled_client",
+      "description": "SSL 2.0 Client Disabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\SSL 2.0\\Client",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 or not present (Disabled)"
+    },
+    {
+      "name": "ssl_2_0_disabled_server",
+      "description": "SSL 2.0 Server Disabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\SSL 2.0\\Server",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 or not present (Disabled)"
+    },
+    {
+      "name": "ssl_3_0_disabled_client",
+      "description": "SSL 3.0 Client Disabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\SSL 3.0\\Client",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 or not present (Disabled)"
+    },
+    {
+      "name": "ssl_3_0_disabled_server",
+      "description": "SSL 3.0 Server Disabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\SSL 3.0\\Server",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 or not present (Disabled)"
+    },
+    {
+      "name": "tls_1_0_disabled_client",
+      "description": "TLS 1.0 Client Disabled (FIPS Requirement)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.0\\Client",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 (Disabled)"
+    },
+    {
+      "name": "tls_1_0_disabled_server",
+      "description": "TLS 1.0 Server Disabled (FIPS Requirement)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.0\\Server",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 (Disabled)"
+    },
+    {
+      "name": "tls_1_1_disabled_client",
+      "description": "TLS 1.1 Client Disabled (FIPS Requirement)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.1\\Client",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 (Disabled)"
+    },
+    {
+      "name": "tls_1_1_disabled_server",
+      "description": "TLS 1.1 Server Disabled (FIPS Requirement)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Protocols\\TLS 1.1\\Server",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 (Disabled)"
+    },
+    {
+      "name": "weak_cipher_3des_disabled",
+      "description": "Triple DES 168 Cipher Disabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Ciphers\\Triple DES 168",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 or not present (Disabled)"
+    },
+    {
+      "name": "weak_cipher_rc4_128_disabled",
+      "description": "RC4 128/128 Cipher Disabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Ciphers\\RC4 128/128",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 or not present (Disabled)"
+    },
+    {
+      "name": "weak_cipher_rc4_64_disabled",
+      "description": "RC4 64/128 Cipher Disabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Ciphers\\RC4 64/128",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 or not present (Disabled)"
+    },
+    {
+      "name": "weak_cipher_rc4_56_disabled",
+      "description": "RC4 56/128 Cipher Disabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Ciphers\\RC4 56/128",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 or not present (Disabled)"
+    },
+    {
+      "name": "weak_cipher_rc4_40_disabled",
+      "description": "RC4 40/128 Cipher Disabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Ciphers\\RC4 40/128",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 or not present (Disabled)"
+    },
+    {
+      "name": "strong_cipher_aes_128_enabled",
+      "description": "AES 128/128 Cipher Enabled (FIPS Approved)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Ciphers\\AES 128/128",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 or not present (Enabled)"
+    },
+    {
+      "name": "strong_cipher_aes_256_enabled",
+      "description": "AES 256/256 Cipher Enabled (FIPS Approved)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Ciphers\\AES 256/256",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 or not present (Enabled)"
+    },
+    {
+      "name": "hash_md5_disabled",
+      "description": "MD5 Hash Disabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Hashes\\MD5",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "0 or not present (Disabled)"
+    },
+    {
+      "name": "hash_sha_enabled",
+      "description": "SHA Hash Enabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Hashes\\SHA",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 or not present (Enabled)"
+    },
+    {
+      "name": "hash_sha256_enabled",
+      "description": "SHA-256 Hash Enabled (FIPS Approved)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Hashes\\SHA256",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 or not present (Enabled)"
+    },
+    {
+      "name": "hash_sha384_enabled",
+      "description": "SHA-384 Hash Enabled (FIPS Approved)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Hashes\\SHA384",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 or not present (Enabled)"
+    },
+    {
+      "name": "hash_sha512_enabled",
+      "description": "SHA-512 Hash Enabled (FIPS Approved)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Hashes\\SHA512",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 or not present (Enabled)"
+    },
+    {
+      "name": "key_exchange_pkcs_enabled",
+      "description": "PKCS Key Exchange Enabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\KeyExchangeAlgorithms\\PKCS",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 or not present (Enabled)"
+    },
+    {
+      "name": "key_exchange_ecdh_enabled",
+      "description": "ECDH Key Exchange Enabled (FIPS Approved)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\KeyExchangeAlgorithms\\ECDH",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 or not present (Enabled)"
+    },
+    {
+      "name": "key_exchange_diffie_hellman_enabled",
+      "description": "Diffie-Hellman Key Exchange Enabled",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\KeyExchangeAlgorithms\\Diffie-Hellman",
+      "value_name": "Enabled",
+      "operation": "read",
+      "expected_value": "1 or not present (Enabled)"
+    },
+    {
+      "name": "crypto_ng_enabled",
+      "description": "Cryptography Next Generation (CNG) Enabled",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Policies\\Microsoft\\Cryptography\\Configuration\\SSL\\00010002",
+      "value_name": "Functions",
+      "operation": "read",
+      "expected_value": "List of FIPS-approved cipher suites"
+    },
+    {
+      "name": "efs_algorithm",
+      "description": "EFS Algorithm Configuration",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\EFS",
+      "value_name": "AlgorithmID",
+      "operation": "read",
+      "expected_value": "26115 (AES-256) or FIPS-approved algorithm"
+    },
+    {
+      "name": "bitlocker_encryption_method",
+      "description": "BitLocker Encryption Method",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Policies\\Microsoft\\FVE",
+      "value_name": "EncryptionMethod",
+      "operation": "read",
+      "expected_value": "3 (AES-128) or 4 (AES-256)"
+    },
+    {
+      "name": "rdp_encryption_level",
+      "description": "RDP Encryption Level",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp",
+      "value_name": "MinEncryptionLevel",
+      "operation": "read",
+      "expected_value": "3 (High) or 4 (FIPS Compliant)"
+    },
+    {
+      "name": "rdp_security_layer",
+      "description": "RDP Security Layer",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp",
+      "value_name": "SecurityLayer",
+      "operation": "read",
+      "expected_value": "2 (SSL/TLS)"
+    }
+  ]
+}

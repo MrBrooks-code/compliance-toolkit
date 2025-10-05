@@ -1,0 +1,142 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "report_title": "Performance Diagnostics Report",
+    "report_version": "1.0.0",
+    "author": "Compliance Toolkit",
+    "description": "System performance settings, memory management, and optimization configuration",
+    "category": "Performance & Optimization",
+    "last_updated": "2025-01-04",
+    "compliance": "Performance Standards"
+  },
+  "queries": [
+    {
+      "name": "virtual_memory_settings",
+      "description": "Virtual Memory (Page File) Configuration",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management",
+      "value_name": "PagingFiles",
+      "operation": "read"
+    },
+    {
+      "name": "clear_page_file_shutdown",
+      "description": "Clear Page File at Shutdown",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management",
+      "value_name": "ClearPageFileAtShutdown",
+      "operation": "read"
+    },
+    {
+      "name": "system_startup_delay",
+      "description": "System Startup Delay",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize",
+      "value_name": "StartupDelayInMSec",
+      "operation": "read"
+    },
+    {
+      "name": "prefetch_enabled",
+      "description": "Prefetch and Superfetch Status",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
+      "value_name": "EnablePrefetcher",
+      "operation": "read"
+    },
+    {
+      "name": "superfetch_enabled",
+      "description": "Superfetch Service Status",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
+      "value_name": "EnableSuperfetch",
+      "operation": "read"
+    },
+    {
+      "name": "boot_optimization",
+      "description": "Boot Optimization Settings",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management\\PrefetchParameters",
+      "operation": "read",
+      "read_all": true
+    },
+    {
+      "name": "visual_effects",
+      "description": "Visual Effects Performance Settings",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
+      "value_name": "VisualFXSetting",
+      "operation": "read"
+    },
+    {
+      "name": "menu_show_delay",
+      "description": "Menu Show Delay (milliseconds)",
+      "root_key": "HKCU",
+      "path": "Control Panel\\Desktop",
+      "value_name": "MenuShowDelay",
+      "operation": "read"
+    },
+    {
+      "name": "auto_restart_shell",
+      "description": "Automatic Shell Restart on Crash",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon",
+      "value_name": "AutoRestartShell",
+      "operation": "read"
+    },
+    {
+      "name": "crash_dump_enabled",
+      "description": "System Crash Dump Configuration",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\CrashControl",
+      "value_name": "CrashDumpEnabled",
+      "operation": "read"
+    },
+    {
+      "name": "dump_file_location",
+      "description": "Memory Dump File Location",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\CrashControl",
+      "value_name": "DumpFile",
+      "operation": "read"
+    },
+    {
+      "name": "error_reporting_disabled",
+      "description": "Windows Error Reporting Status",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting",
+      "value_name": "Disabled",
+      "operation": "read"
+    },
+    {
+      "name": "disk_timeout",
+      "description": "Disk I/O Timeout Value",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Services\\Disk",
+      "value_name": "TimeOutValue",
+      "operation": "read"
+    },
+    {
+      "name": "processor_scheduling",
+      "description": "Processor Scheduling Priority (Programs vs Background)",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\PriorityControl",
+      "value_name": "Win32PrioritySeparation",
+      "operation": "read"
+    },
+    {
+      "name": "large_system_cache",
+      "description": "Large System Cache for Network Services",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management",
+      "value_name": "LargeSystemCache",
+      "operation": "read"
+    },
+    {
+      "name": "boot_execute",
+      "description": "Programs that Run at Boot",
+      "root_key": "HKLM",
+      "path": "SYSTEM\\CurrentControlSet\\Control\\Session Manager",
+      "value_name": "BootExecute",
+      "operation": "read"
+    }
+  ]
+}

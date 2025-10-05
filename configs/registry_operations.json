@@ -1,0 +1,79 @@
+{
+  "version": "1.0",
+  "queries": [
+    {
+      "name": "read_windows_version",
+      "description": "Read Windows product name",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      "value_name": "ProductName",
+      "operation": "read"
+    },
+    {
+      "name": "read_all_version_info",
+      "description": "Read all Windows version information",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+      "operation": "read",
+      "read_all": true
+    },
+    {
+      "name": "write_custom_string",
+      "description": "Write a custom string value for testing",
+      "root_key": "HKCU",
+      "path": "Software\\MyApp\\Settings",
+      "value_name": "AppName",
+      "operation": "write",
+      "write_type": "string",
+      "write_value": "My Awesome Application"
+    },
+    {
+      "name": "write_custom_dword",
+      "description": "Write a custom DWORD value for testing",
+      "root_key": "HKCU",
+      "path": "Software\\MyApp\\Settings",
+      "value_name": "MaxConnections",
+      "operation": "write",
+      "write_type": "dword",
+      "write_value": 100
+    },
+    {
+      "name": "write_custom_qword",
+      "description": "Write a custom QWORD value for testing",
+      "root_key": "HKCU",
+      "path": "Software\\MyApp\\Settings",
+      "value_name": "MaxFileSize",
+      "operation": "write",
+      "write_type": "qword",
+      "write_value": 5368709120
+    },
+    {
+      "name": "write_multi_string",
+      "description": "Write multiple string values",
+      "root_key": "HKCU",
+      "path": "Software\\MyApp\\Settings",
+      "value_name": "AllowedUsers",
+      "operation": "write",
+      "write_type": "multi_string",
+      "write_value": ["admin", "user1", "user2"]
+    },
+    {
+      "name": "write_binary_data",
+      "description": "Write binary data",
+      "root_key": "HKCU",
+      "path": "Software\\MyApp\\Settings",
+      "value_name": "ConfigData",
+      "operation": "write",
+      "write_type": "binary",
+      "write_value": [72, 101, 108, 108, 111]
+    },
+    {
+      "name": "read_custom_values",
+      "description": "Read all custom values we just wrote",
+      "root_key": "HKCU",
+      "path": "Software\\MyApp\\Settings",
+      "operation": "read",
+      "read_all": true
+    }
+  ]
+}

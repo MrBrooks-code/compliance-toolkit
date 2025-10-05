@@ -1,0 +1,158 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "report_title": "User Settings Report",
+    "report_version": "1.0.0",
+    "author": "Compliance Toolkit",
+    "description": "User preferences, desktop configuration, and personalization settings",
+    "category": "User Configuration",
+    "last_updated": "2025-01-04",
+    "compliance": "User Experience Standards"
+  },
+  "queries": [
+    {
+      "name": "user_wallpaper",
+      "description": "Desktop Wallpaper Path",
+      "root_key": "HKCU",
+      "path": "Control Panel\\Desktop",
+      "value_name": "Wallpaper",
+      "operation": "read"
+    },
+    {
+      "name": "screen_saver_active",
+      "description": "Screen Saver Active Status",
+      "root_key": "HKCU",
+      "path": "Control Panel\\Desktop",
+      "value_name": "ScreenSaveActive",
+      "operation": "read"
+    },
+    {
+      "name": "screen_saver_timeout",
+      "description": "Screen Saver Timeout (seconds)",
+      "root_key": "HKCU",
+      "path": "Control Panel\\Desktop",
+      "value_name": "ScreenSaveTimeOut",
+      "operation": "read"
+    },
+    {
+      "name": "screen_saver_secure",
+      "description": "Screen Saver Password Protection",
+      "root_key": "HKCU",
+      "path": "Control Panel\\Desktop",
+      "value_name": "ScreenSaverIsSecure",
+      "operation": "read"
+    },
+    {
+      "name": "theme_name",
+      "description": "Current Windows Theme",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Themes",
+      "value_name": "CurrentTheme",
+      "operation": "read"
+    },
+    {
+      "name": "dark_mode_apps",
+      "description": "Dark Mode for Apps",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+      "value_name": "AppsUseLightTheme",
+      "operation": "read"
+    },
+    {
+      "name": "dark_mode_system",
+      "description": "Dark Mode for System",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+      "value_name": "SystemUsesLightTheme",
+      "operation": "read"
+    },
+    {
+      "name": "explorer_settings",
+      "description": "Windows Explorer Settings",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+      "operation": "read",
+      "read_all": true
+    },
+    {
+      "name": "show_file_extensions",
+      "description": "Show File Extensions in Explorer",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+      "value_name": "HideFileExt",
+      "operation": "read"
+    },
+    {
+      "name": "show_hidden_files",
+      "description": "Show Hidden Files in Explorer",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+      "value_name": "Hidden",
+      "operation": "read"
+    },
+    {
+      "name": "taskbar_location",
+      "description": "Taskbar Position",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StuckRects3",
+      "value_name": "Settings",
+      "operation": "read"
+    },
+    {
+      "name": "startup_programs",
+      "description": "User Startup Programs",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+      "operation": "read",
+      "read_all": true
+    },
+    {
+      "name": "user_environment_vars",
+      "description": "User Environment Variables",
+      "root_key": "HKCU",
+      "path": "Environment",
+      "operation": "read",
+      "read_all": true
+    },
+    {
+      "name": "user_timezone",
+      "description": "User Time Zone",
+      "root_key": "HKCU",
+      "path": "Control Panel\\TimeDate",
+      "value_name": "RealTimeIsUniversal",
+      "operation": "read"
+    },
+    {
+      "name": "default_browser",
+      "description": "Default Web Browser",
+      "root_key": "HKCU",
+      "path": "Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\http\\UserChoice",
+      "value_name": "ProgId",
+      "operation": "read"
+    },
+    {
+      "name": "mouse_speed",
+      "description": "Mouse Pointer Speed",
+      "root_key": "HKCU",
+      "path": "Control Panel\\Mouse",
+      "value_name": "MouseSpeed",
+      "operation": "read"
+    },
+    {
+      "name": "keyboard_delay",
+      "description": "Keyboard Repeat Delay",
+      "root_key": "HKCU",
+      "path": "Control Panel\\Keyboard",
+      "value_name": "KeyboardDelay",
+      "operation": "read"
+    },
+    {
+      "name": "accessibility_settings",
+      "description": "Accessibility/Ease of Access Settings",
+      "root_key": "HKCU",
+      "path": "Control Panel\\Accessibility",
+      "operation": "read",
+      "read_all": true
+    }
+  ]
+}

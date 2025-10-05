@@ -1,0 +1,126 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "report_title": "Software Inventory Report",
+    "report_version": "1.1.0",
+    "author": "Compliance Toolkit",
+    "description": "Installed software applications, versions, and development tools inventory",
+    "category": "Software Asset Management",
+    "last_updated": "2025-01-04",
+    "compliance": "IT Asset Management / License Compliance"
+  },
+  "queries": [
+    {
+      "name": "dotnet_framework_versions",
+      "description": ".NET Framework Installed Versions",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\NET Framework Setup\\NDP",
+      "operation": "read",
+      "read_all": true
+    },
+    {
+      "name": "dotnet_core_installed",
+      "description": ".NET Core/5+ Runtime Versions",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\dotnet\\Setup\\InstalledVersions\\x64\\sharedhost",
+      "value_name": "Version",
+      "operation": "read"
+    },
+    {
+      "name": "powershell_version",
+      "description": "PowerShell Version",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\PowerShell\\3\\PowerShellEngine",
+      "value_name": "PowerShellVersion",
+      "operation": "read"
+    },
+    {
+      "name": "visual_studio_versions",
+      "description": "Visual Studio Installation Paths",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\VisualStudio",
+      "operation": "read",
+      "read_all": true
+    },
+    {
+      "name": "office_version",
+      "description": "Microsoft Office Version",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Office\\ClickToRun\\Configuration",
+      "value_name": "VersionToReport",
+      "operation": "read"
+    },
+    {
+      "name": "office_product_name",
+      "description": "Microsoft Office Product Name",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Office\\ClickToRun\\Configuration",
+      "value_name": "ProductReleaseIds",
+      "operation": "read"
+    },
+    {
+      "name": "chrome_version",
+      "description": "Google Chrome Version",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\chrome.exe",
+      "value_name": "Path",
+      "operation": "read"
+    },
+    {
+      "name": "edge_version",
+      "description": "Microsoft Edge Version",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Edge\\BLBeacon",
+      "value_name": "version",
+      "operation": "read"
+    },
+    {
+      "name": "java_version",
+      "description": "Java Runtime Version",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\JavaSoft\\Java Runtime Environment",
+      "value_name": "CurrentVersion",
+      "operation": "read"
+    },
+    {
+      "name": "python_installed",
+      "description": "Python Installation Path",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Python\\PythonCore",
+      "operation": "read",
+      "read_all": true
+    },
+    {
+      "name": "nodejs_version",
+      "description": "Node.js Version",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Node.js",
+      "value_name": "Version",
+      "operation": "read"
+    },
+    {
+      "name": "git_install_path",
+      "description": "Git Installation Path",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\GitForWindows",
+      "value_name": "InstallPath",
+      "operation": "read"
+    },
+    {
+      "name": "docker_version",
+      "description": "Docker Desktop Version",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Docker Inc.\\Docker\\1.0",
+      "value_name": "Version",
+      "operation": "read"
+    },
+    {
+      "name": "wsl_version",
+      "description": "Windows Subsystem for Linux Version",
+      "root_key": "HKLM",
+      "path": "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Lxss",
+      "value_name": "DefaultVersion",
+      "operation": "read"
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Toolkit - {{.Metadata.ReportTitle}}</title>
+
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+        {{template "main.css"}}
+    </style>
+
+    <style media="print">
+        {{template "print.css"}}
+    </style>
+</head>
+<body>
+    <!-- Dark Mode Toggle -->
+    <button id="darkModeToggle" class="button is-dark is-pulled-right m-4 no-print" onclick="toggleDarkMode()">
+        <span class="icon">
+            <i class="fas fa-moon"></i>
+        </span>
+    </button>
+
+    <section class="section">
+        <div class="container">
+            {{template "header" .}}
+
+            <div class="columns is-multiline mt-5">
+                {{template "kpi-cards" .}}
+            </div>
+
+            <div class="columns mt-5">
+                <div class="column is-half">
+                    {{template "chart" .}}
+                </div>
+                <div class="column is-half">
+                    <div class="box">
+                        <h3 class="title is-5">Compliance Summary</h3>
+                        <div class="content">
+                            <p><strong>Total Checks:</strong> {{.TotalQueries}}</p>
+                            <p><strong>Passed:</strong> <span class="has-text-success">{{.PassedQueries}}</span></p>
+                            <p><strong>Failed:</strong> <span class="has-text-danger">{{.FailedQueries}}</span></p>
+                            <p><strong>Compliance Rate:</strong> <span class="tag is-large {{if ge .ComplianceRate 80.0}}is-success{{else if ge .ComplianceRate 60.0}}is-warning{{else}}is-danger{{end}}">{{printf "%.1f" .ComplianceRate}}%</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-5">
+                {{template "data-table" .}}
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                <strong>Compliance Toolkit</strong> - Generated on {{.GeneratedAt.Format "2006-01-02 15:04:05"}}
+            </p>
+            <p class="is-size-7">Machine: {{.MachineName}} | Version: {{.Metadata.ReportVersion}}</p>
+        </div>
+    </footer>
+
+    <script>
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            const icon = document.querySelector('#darkModeToggle i');
+            icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+
+            // Update chart if it exists
+            if (window.complianceChart) {
+                updateChartTheme(newTheme);
+            }
+        }
+
+        // Load saved theme
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            const icon = document.querySelector('#darkModeToggle i');
+            if (icon) {
+                icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        });
+
+        // Collapsible sections
+        function toggleCollapse(button) {
+            const currentRow = button.closest('tr');
+            const detailRow = currentRow.nextElementSibling;
+            const content = detailRow.querySelector('td');
+            const icon = button.querySelector('i');
+
+            if (content.style.display === 'none' || content.style.display === '') {
+                content.style.display = 'table-cell';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.style.display = 'none';
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+
+        // Search/Filter
+        function filterResults() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const rows = document.querySelectorAll('#resultsTable tbody tr');
+
+            // Process rows in pairs (summary row + detail row)
+            for (let i = 0; i < rows.length; i += 2) {
+                const summaryRow = rows[i];
+                const detailRow = rows[i + 1];
+
+                if (!summaryRow) continue;
+
+                // Get text from both summary and detail rows for better search
+                let combinedText = summaryRow.textContent.toLowerCase();
+                if (detailRow) {
+                    combinedText += ' ' + detailRow.textContent.toLowerCase();
+                }
+
+                const statusTag = summaryRow.querySelector('.tag');
+                const status = statusTag ? statusTag.textContent : '';
+
+                // Check matches
+                const matchesSearch = combinedText.includes(searchInput);
+                const matchesStatus = statusFilter === 'all' || status.includes(statusFilter);
+
+                // Show/hide both rows together
+                const display = (matchesSearch && matchesStatus) ? '' : 'none';
+                summaryRow.style.display = display;
+                if (detailRow) {
+                    detailRow.style.display = display;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

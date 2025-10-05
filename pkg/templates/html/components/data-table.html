@@ -1,0 +1,175 @@
+{{define "data-table"}}
+<div class="box">
+    <div class="level">
+        <div class="level-left">
+            <div class="level-item">
+                <h3 class="title is-4">Registry Check Details</h3>
+            </div>
+        </div>
+        <div class="level-right no-print">
+            <div class="level-item">
+                <button class="button is-small" onclick="expandAll()">
+                    <span class="icon">
+                        <i class="fas fa-expand-alt"></i>
+                    </span>
+                    <span>Expand All</span>
+                </button>
+            </div>
+            <div class="level-item">
+                <button class="button is-small" onclick="collapseAll()">
+                    <span class="icon">
+                        <i class="fas fa-compress-alt"></i>
+                    </span>
+                    <span>Collapse All</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="field is-grouped no-print mb-4">
+        <p class="control is-expanded">
+            <input class="input" type="text" id="searchInput" placeholder="Search registry keys, values, or descriptions..." onkeyup="filterResults()">
+        </p>
+        <p class="control">
+            <span class="select">
+                <select id="statusFilter" onchange="filterResults()">
+                    <option value="all">All Status</option>
+                    <option value="Success">Success Only</option>
+                    <option value="Error">Errors Only</option>
+                </select>
+            </span>
+        </p>
+    </div>
+
+    <!-- Results Table -->
+    <div class="table-container">
+        <table class="table is-fullwidth is-striped is-hoverable" id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th class="no-print" style="width: 100px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Results}}
+                <tr>
+                    <td><strong>{{.Name}}</strong></td>
+                    <td>{{.Description}}</td>
+                    <td>
+                        {{if .Error}}
+                        <span class="tag is-danger">
+                            <span class="icon">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </span>
+                            <span>Error</span>
+                        </span>
+                        {{else}}
+                        <span class="tag is-success">
+                            <span class="icon">
+                                <i class="fas fa-check"></i>
+                            </span>
+                            <span>Success</span>
+                        </span>
+                        {{end}}
+                    </td>
+                    <td class="no-print">
+                        <button class="button is-small is-info" onclick="toggleCollapse(this)">
+                            <span class="icon">
+                                <i class="fas fa-chevron-down"></i>
+                            </span>
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" style="display: none; padding: 0;">
+                        <div class="box m-2" style="background-color: var(--detail-bg, #f5f5f5);">
+                            <div class="content">
+                                <h5 class="title is-6">Registry Details</h5>
+                                <table class="table is-narrow is-fullwidth">
+                                    <tbody>
+                                        <tr>
+                                            <td style="width: 200px;"><strong>Root Key:</strong></td>
+                                            <td><code>{{.RootKey}}</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Path:</strong></td>
+                                            <td><code>{{.Path}}</code></td>
+                                        </tr>
+                                        {{if .ValueName}}
+                                        <tr>
+                                            <td><strong>Value Name:</strong></td>
+                                            <td><code>{{.ValueName}}</code></td>
+                                        </tr>
+                                        {{end}}
+                                        <tr>
+                                            <td><strong>Operation:</strong></td>
+                                            <td><span class="tag is-light">{{.Operation}}</span></td>
+                                        </tr>
+                                        {{if .ExpectedValue}}
+                                        <tr>
+                                            <td><strong>Expected Value:</strong></td>
+                                            <td><span class="tag is-info is-light"><code>{{.ExpectedValue}}</code></span></td>
+                                        </tr>
+                                        {{end}}
+                                        {{if .Error}}
+                                        <tr>
+                                            <td><strong>Actual Value:</strong></td>
+                                            <td><span class="has-text-danger">{{.Error}}</span></td>
+                                        </tr>
+                                        {{else}}
+                                        <tr>
+                                            <td><strong>Actual Value:</strong></td>
+                                            <td>
+                                                {{if .Values}}
+                                                <div class="content">
+                                                    <ul>
+                                                    {{range $key, $value := .Values}}
+                                                        <li><code>{{$key}}</code>: {{$value}}</li>
+                                                    {{end}}
+                                                    </ul>
+                                                </div>
+                                                {{else}}
+                                                <code>{{.Value}}</code>
+                                                {{end}}
+                                            </td>
+                                        </tr>
+                                        {{end}}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function expandAll() {
+        const buttons = document.querySelectorAll('#resultsTable tbody button');
+        buttons.forEach(button => {
+            const content = button.closest('tr').nextElementSibling.querySelector('td');
+            const icon = button.querySelector('i');
+            content.style.display = 'table-cell';
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-up');
+        });
+    }
+
+    function collapseAll() {
+        const buttons = document.querySelectorAll('#resultsTable tbody button');
+        buttons.forEach(button => {
+            const content = button.closest('tr').nextElementSibling.querySelector('td');
+            const icon = button.querySelector('i');
+            content.style.display = 'none';
+            icon.classList.remove('fa-chevron-up');
+            icon.classList.add('fa-chevron-down');
+        });
+    }
+</script>
+{{end}}

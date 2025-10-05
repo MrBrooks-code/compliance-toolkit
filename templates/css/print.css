@@ -1,0 +1,167 @@
+/* Print Stylesheet */
+@media print {
+    /* Hide non-printable elements */
+    .no-print,
+    #darkModeToggle,
+    button,
+    .button,
+    input,
+    select,
+    .level-right .button {
+        display: none !important;
+    }
+
+    /* Reset colors for print */
+    * {
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+    }
+
+    /* Page setup */
+    @page {
+        margin: 2cm;
+        size: letter;
+    }
+
+    /* Body */
+    body {
+        font-size: 12pt;
+        line-height: 1.5;
+    }
+
+    /* Headings */
+    h1 { font-size: 24pt; }
+    h2 { font-size: 20pt; }
+    h3 { font-size: 16pt; }
+    h4 { font-size: 14pt; }
+    h5 { font-size: 12pt; }
+
+    /* Container */
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Boxes and Cards */
+    .box {
+        border: 1px solid #dbdbdb !important;
+        page-break-inside: avoid;
+        margin-bottom: 1cm;
+    }
+
+    /* Tables */
+    table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+    }
+
+    table, th, td {
+        border: 1px solid #dbdbdb !important;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    tr {
+        page-break-inside: avoid;
+    }
+
+    /* KPI Cards - Display in single row */
+    .columns {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .column {
+        flex: 1 !important;
+        page-break-inside: avoid;
+    }
+
+    /* Chart - Ensure it prints */
+    #complianceChart {
+        max-width: 400px;
+        max-height: 400px;
+        page-break-inside: avoid;
+    }
+
+    /* Tags and Badges */
+    .tag {
+        border: 1px solid #dbdbdb !important;
+        padding: 0.25em 0.5em !important;
+    }
+
+    .tag.is-success {
+        border-color: #48c78e !important;
+    }
+
+    .tag.is-danger {
+        border-color: #f14668 !important;
+    }
+
+    .tag.is-warning {
+        border-color: #ffe08a !important;
+    }
+
+    /* Icons - Show as text */
+    .icon {
+        display: none;
+    }
+
+    /* Footer */
+    .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-top: 1px solid #dbdbdb !important;
+        padding: 1cm;
+        font-size: 10pt;
+    }
+
+    /* Links */
+    a {
+        text-decoration: underline;
+    }
+
+    /* Code blocks */
+    code {
+        border: 1px solid #dbdbdb !important;
+        padding: 2px 4px;
+        font-family: 'Courier New', monospace;
+    }
+
+    /* Page breaks */
+    .page-break {
+        page-break-before: always;
+    }
+
+    /* Header - Keep together */
+    .level {
+        page-break-inside: avoid;
+    }
+
+    /* Expand all collapsible sections for print */
+    td[colspan] {
+        display: table-cell !important;
+    }
+
+    /* Remove hover effects */
+    *:hover {
+        transform: none !important;
+    }
+
+    /* Compliance summary box */
+    .content p {
+        margin-bottom: 0.5em;
+    }
+}
+
+/* Print-friendly dark text on white */
+@media print {
+    [data-theme="dark"] * {
+        background: white !important;
+        color: black !important;
+    }
+}

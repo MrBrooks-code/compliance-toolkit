@@ -1,0 +1,291 @@
+/* CSS Variables for Theming */
+:root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --text-color: #363636;
+    --text-muted: #7a7a7a;
+    --border-color: #dbdbdb;
+    --detail-bg: #fafafa;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2a2a2a;
+    --text-color: #f5f5f5;
+    --text-muted: #b5b5b5;
+    --border-color: #4a4a4a;
+    --detail-bg: #2d2d2d;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] body {
+    background-color: var(--bg-primary);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .box {
+    background-color: var(--bg-secondary);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .table {
+    background-color: var(--bg-secondary);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .table thead th {
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .table tbody tr {
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] .table.is-striped tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Dark Mode - Table Hover (override Bulma's bright hover) */
+[data-theme="dark"] .table.is-hoverable tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme="dark"] .table.is-hoverable.is-striped tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme="dark"] .footer {
+    background-color: var(--bg-secondary);
+    color: var(--text-color);
+}
+
+[data-theme="dark"] .input,
+[data-theme="dark"] .select select {
+    background-color: var(--bg-secondary);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+[data-theme="dark"] code {
+    background-color: var(--bg-primary);
+    color: #8be9fd; /* Cyan - better contrast */
+}
+
+/* Dark Mode - Typography Improvements */
+[data-theme="dark"] .title,
+[data-theme="dark"] .subtitle,
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+    color: #f8f8f2 !important; /* Bright white for titles */
+}
+
+[data-theme="dark"] .has-text-grey {
+    color: #b5b5b5 !important; /* Light grey for muted text */
+}
+
+[data-theme="dark"] strong {
+    color: #f8f8f2; /* Bright white for bold text */
+}
+
+/* Dark Mode - Table Content */
+[data-theme="dark"] .table tbody td {
+    color: #e6e6e6; /* Light color for table cells */
+}
+
+[data-theme="dark"] .table tbody td strong {
+    color: #f8f8f2; /* Brighter for table labels */
+}
+
+/* Dark Mode - Specific Elements */
+[data-theme="dark"] .content p {
+    color: #e6e6e6;
+}
+
+[data-theme="dark"] .content ul li,
+[data-theme="dark"] .content ol li {
+    color: #e6e6e6;
+}
+
+/* KPI Cards Enhancement */
+.kpi-card {
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+    border-radius: 8px;
+}
+
+.kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-hover);
+}
+
+/* Table Sorting */
+th[onclick] {
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+th[onclick]:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] th[onclick]:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+th.sort-asc .fa-sort::before {
+    content: "\f0de";
+    color: #3273dc;
+}
+
+th.sort-desc .fa-sort::before {
+    content: "\f0dd";
+    color: #3273dc;
+}
+
+/* Smooth Transitions */
+.box, .button, .tag, .card {
+    transition: all 0.3s ease;
+}
+
+/* Collapsible Content Animation */
+td[colspan] {
+    transition: all 0.3s ease;
+}
+
+/* Dark Mode - Tags */
+[data-theme="dark"] .tag {
+    background-color: #3a3a3a;
+    color: #f8f8f2;
+}
+
+[data-theme="dark"] .tag.is-success {
+    background-color: #1e7e34;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .tag.is-danger {
+    background-color: #bd2130;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .tag.is-info {
+    background-color: #117a8b;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .tag.is-light {
+    background-color: #4a4a4a;
+    color: #e6e6e6;
+}
+
+[data-theme="dark"] .tag.is-info.is-light {
+    background-color: #1e5a6e;
+    color: #8be9fd;
+}
+
+/* Dark Mode - Detail Box Background */
+[data-theme="dark"] .box .box {
+    background-color: #333333 !important;
+}
+
+[data-theme="dark"] td[colspan] .box {
+    background-color: #333333 !important;
+}
+
+/* Dark Mode - Text Danger/Success */
+[data-theme="dark"] .has-text-danger {
+    color: #ff6b6b !important;
+}
+
+[data-theme="dark"] .has-text-success {
+    color: #51cf66 !important;
+}
+
+/* Dark Mode - Header Box */
+[data-theme="dark"] .has-background-primary-light {
+    background-color: #2a2a2a !important; /* Match secondary background */
+    border: 1px solid #4a4a4a;
+}
+
+/* Dark Mode - Header Icon Only (not all primary text) */
+[data-theme="dark"] .box.has-background-primary-light .icon.has-text-primary {
+    color: #8be9fd !important; /* Cyan to match code colors */
+}
+
+/* Dark Mode - Button Hovers */
+[data-theme="dark"] .button:hover {
+    background-color: #3a3a3a !important;
+}
+
+[data-theme="dark"] .button.is-dark:hover {
+    background-color: #4a4a4a !important;
+}
+
+[data-theme="dark"] .button.is-info:hover {
+    background-color: #1a6f8e !important;
+}
+
+[data-theme="dark"] .button.is-small:hover {
+    background-color: #3a3a3a !important;
+}
+
+/* Dark Mode Toggle Button */
+#darkModeToggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    box-shadow: var(--shadow);
+}
+
+#darkModeToggle:hover {
+    box-shadow: var(--shadow-hover);
+}
+
+/* Better Focus States */
+.input:focus,
+.select select:focus {
+    border-color: #3273dc;
+    box-shadow: 0 0 0 0.125em rgba(50, 115, 220, 0.25);
+}
+
+/* Icon Text Styling */
+.icon-text {
+    align-items: center;
+}
+
+/* Responsive Adjustments */
+@media screen and (max-width: 768px) {
+    .level {
+        flex-direction: column;
+    }
+
+    .kpi-card {
+        margin-bottom: 1rem;
+    }
+
+    #darkModeToggle {
+        position: static;
+        margin: 1rem;
+    }
+}
+
+/* Chart Container */
+#complianceChart {
+    max-height: 300px;
+}
+
+/* Print Utilities */
+.no-print {
+    /* Handled in print.css */
+}
