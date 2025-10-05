@@ -11,9 +11,9 @@ Welcome to the Compliance Toolkit! This guide will help you get started with Win
 
 ### 🚀 Getting Started
 
-1. **[Quick Start Guide](user-guide/QUICKSTART.md)** - Get up and running in 5 minutes
-2. **[Installation Guide](user-guide/INSTALLATION.md)** - Complete installation instructions
-3. **[User Guide](user-guide/USER_GUIDE.md)** - Interactive mode usage
+1. **[Quick Start Guide](docs/user-guide/QUICKSTART.md)** - Get up and running in 5 minutes
+2. **[Installation Guide](docs/user-guide/INSTALLATION.md)** - Complete installation instructions
+3. **[User Guide](docs/user-guide/USER_GUIDE.md)** - Interactive mode usage
 
 ### 💻 Command Line Interface
 
