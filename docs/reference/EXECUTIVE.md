@@ -80,12 +80,12 @@ The Compliance Toolkit generates **modern, TypeScript-style HTML reports** desig
 
 ```
 ╔════════════════════════════════════════════════════════════╗
-║  🛡️ Compliance Toolkit - NIST 800-171 Security...         ║
+║    Compliance Toolkit - NIST 800-171 Security...           ║
 ║  NIST 800-171 security controls validation for CUI         ║
-║                                                             ║
-║  [Security & Compliance] [NIST 800-171 Rev 2] [v2.0.0]    ║
-║                                                             ║
-║  📅 Last Updated: 2025-01-04  👤 Author: ...              ║
+║                                                            ║
+║  [Security & Compliance] [NIST 800-171 Rev 2] [v2.0.0]     ║
+║                                                            ║
+║    Last Updated: 2025-01-04  👤 Author: ...                ║
 ╚════════════════════════════════════════════════════════════╝
 ```
 
@@ -116,9 +116,9 @@ The Compliance Toolkit generates **modern, TypeScript-style HTML reports** desig
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ [🔍 Search registry keys, values, or descriptions...]      │
+│ [  Search registry keys, values, or descriptions...]        │
 │                                                             │
-│ Status: [All Status ▼] [Success Only] [Errors Only]       │
+│ Status: [All Status ▼] [Success Only] [Errors Only]         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -128,14 +128,14 @@ Each check appears with:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ uac_enabled                                     [✅ Success] │
+│ uac_enabled                                     [ Success]  │
 │ User Account Control (UAC) Status                           │
 │                                                             │
-│ ▼ Click to expand                                          │
+│ ▼ Click to expand                                           │
 │                                                             │
-│ Registry Details:                                          │
-│   Root Key: HKLM                                           │
-│   Path: SOFTWARE\Microsoft\Windows\CurrentVersion\...      │
+│ Registry Details:                                           │
+│   Root Key: HKLM                                            │
+│   Path: SOFTWARE\Microsoft\Windows\CurrentVersion\...       │
 │   Value Name: EnableLUA                                     │
 │   Expected: 1 (Enabled)                                     │
 │   Actual: 1                                                 │
