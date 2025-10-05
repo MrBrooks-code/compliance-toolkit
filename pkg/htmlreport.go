@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
@@ -20,13 +21,14 @@ var templateFS embed.FS
 
 // HTMLReport generates HTML reports from registry scan results using templates
 type HTMLReport struct {
-	Title         string
-	Timestamp     time.Time
-	Results       map[string]ReportResult
-	OutputPath    string
-	Metadata      ReportMetadata
-	tmpl          *template.Template
-	registryReader *RegistryReader // Added for system info gathering
+	Title          string
+	Timestamp      time.Time
+	Results        map[string]ReportResult
+	OutputPath     string
+	Metadata       ReportMetadata
+	tmpl           *template.Template
+	registryReader RegistryService // Changed from *RegistryReader to interface
+	logger         *slog.Logger    // Added for dependency injection
 }
 
 // ReportResult represents a single query result
@@ -41,18 +43,20 @@ type ReportResult struct {
 	ExpectedValue string
 }
 
-// NewHTMLReport creates a new HTML report
-func NewHTMLReport(title, outputDir string) *HTMLReport {
+// NewHTMLReport creates a new HTML report with dependency injection
+func NewHTMLReport(title, outputDir string, logger *slog.Logger, registryReader RegistryService) *HTMLReport {
 	timestamp := time.Now()
 	filename := fmt.Sprintf("%s_%s.html",
 		sanitizeFilename(title),
 		timestamp.Format("20060102_150405"))
 
 	return &HTMLReport{
-		Title:      title,
-		Timestamp:  timestamp,
-		Results:    make(map[string]ReportResult),
-		OutputPath: filepath.Join(outputDir, filename),
+		Title:          title,
+		Timestamp:      timestamp,
+		Results:        make(map[string]ReportResult),
+		OutputPath:     filepath.Join(outputDir, filename),
+		logger:         logger,
+		registryReader: registryReader,
 	}
 }
 
@@ -222,9 +226,14 @@ func (r *HTMLReport) buildReportData() *ReportData {
 	return data
 }
 
-// SetRegistryReader sets the registry reader for system info gathering
-func (r *HTMLReport) SetRegistryReader(reader *RegistryReader) {
-	r.registryReader = reader
+// SetMetadata sets the report metadata
+func (r *HTMLReport) SetMetadata(metadata ReportMetadata) {
+	r.Metadata = metadata
+}
+
+// GetOutputPath returns the output path of the report
+func (r *HTMLReport) GetOutputPath() string {
+	return r.OutputPath
 }
 
 // gatherSystemInfo collects system information for the evidence panel
