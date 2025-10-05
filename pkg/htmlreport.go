@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -192,6 +193,11 @@ func (r *HTMLReport) buildReportData() *ReportData {
 
 		queryResults = append(queryResults, qr)
 	}
+
+	// Sort results alphabetically by Name
+	sort.Slice(queryResults, func(i, j int) bool {
+		return queryResults[i].Name < queryResults[j].Name
+	})
 
 	// Build report data
 	data := &ReportData{
