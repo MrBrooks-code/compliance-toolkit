@@ -158,7 +158,6 @@ docs/
 - ✅ Dark mode improvements
 - ✅ Search functionality
 
-See [Project Status](PROJECT_STATUS.md) for complete version history.
 
 ---
 
