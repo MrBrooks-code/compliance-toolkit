@@ -25,6 +25,13 @@ func main() {
 	showVersion := flags.BoolP("version", "v", false, "Show version and exit")
 	generateConfig := flags.Bool("generate-config", false, "Generate default config file and exit")
 
+	// Service management flags
+	installSvc := flags.Bool("install-service", false, "Install as Windows service")
+	uninstallSvc := flags.Bool("uninstall-service", false, "Uninstall Windows service")
+	startSvc := flags.Bool("start-service", false, "Start Windows service")
+	stopSvc := flags.Bool("stop-service", false, "Stop Windows service")
+	statusSvc := flags.Bool("service-status", false, "Show Windows service status")
+
 	flags.Parse(os.Args[1:])
 
 	// Handle version
@@ -41,6 +48,54 @@ func main() {
 		}
 		fmt.Printf("Generated default config file: %s\n", getConfigPath(*configFile))
 		return
+	}
+
+	// Handle service management commands
+	if *installSvc {
+		if err := installService(*configFile); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to install service: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	if *uninstallSvc {
+		if err := uninstallService(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to uninstall service: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	if *startSvc {
+		if err := startService(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to start service: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	if *stopSvc {
+		if err := stopService(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to stop service: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	if *statusSvc {
+		if err := serviceStatus(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to get service status: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Check if running as Windows service
+	isService, err := isWindowsService()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Failed to determine service status: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Load configuration
@@ -77,7 +132,17 @@ func main() {
 	logger := setupLogging(config.Logging)
 	slog.SetDefault(logger)
 
-	// Log startup
+	// If running as service, use service runner
+	if isService {
+		slog.Info("Running as Windows service")
+		if err := runService(config, logger); err != nil {
+			slog.Error("Service execution failed", "error", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Log startup (interactive/console mode)
 	slog.Info("Compliance Client starting",
 		"version", version,
 		"client_id", config.Client.ID,
