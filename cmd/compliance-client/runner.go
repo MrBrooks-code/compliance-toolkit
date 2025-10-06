@@ -182,8 +182,8 @@ func (r *ReportRunner) executeQuery(query pkg.RegistryQuery) (api.QueryResult, *
 	evidence.Result = "success"
 	evidence.Details["actual_value"] = value
 
-	// Simple comparison (case-insensitive)
-	if strings.EqualFold(strings.TrimSpace(value), strings.TrimSpace(query.ExpectedValue)) {
+	// Smart comparison (handles both exact matches and "value (description)" format)
+	if compareValues(value, query.ExpectedValue) {
 		result.Status = "pass"
 	} else {
 		result.Status = "fail"
@@ -400,4 +400,36 @@ func (r *ReportRunner) saveHTMLReport(reportConfig *pkg.RegistryConfig, results 
 
 	r.logger.Info("HTML report saved", "path", htmlReport.OutputPath)
 	return nil
+}
+
+// compareValues performs smart comparison of registry values with expected values
+// Handles cases where expected value contains descriptions like "1 (Enabled)"
+func compareValues(actual, expected string) bool {
+	actual = strings.TrimSpace(actual)
+	expected = strings.TrimSpace(expected)
+
+	// Case 1: Exact match (case-insensitive)
+	if strings.EqualFold(actual, expected) {
+		return true
+	}
+
+	// Case 2: Expected format is "value (description)"
+	// Check if actual value matches the value part before the parenthesis
+	if idx := strings.Index(expected, "("); idx > 0 {
+		// Extract just the value part (before the parenthesis)
+		expectedValue := strings.TrimSpace(expected[:idx])
+		if strings.EqualFold(actual, expectedValue) {
+			return true
+		}
+	}
+
+	// Case 3: Actual format is "value (description)", expected is just value
+	if idx := strings.Index(actual, "("); idx > 0 {
+		actualValue := strings.TrimSpace(actual[:idx])
+		if strings.EqualFold(actualValue, expected) {
+			return true
+		}
+	}
+
+	return false
 }
