@@ -84,6 +84,8 @@ type SecurityConfig struct {
 	ReadOnly bool `mapstructure:"read_only"`
 	// AuditMode logs all registry access attempts
 	AuditMode bool `mapstructure:"audit_mode"`
+	// AuditLogPath is the directory where audit logs are stored
+	AuditLogPath string `mapstructure:"audit_log_path"`
 }
 
 // DefaultConfig returns a Config with sensible defaults
@@ -129,8 +131,9 @@ func DefaultConfig() *Config {
 				`SECURITY\Policy\Secrets`,
 				`SAM\SAM\Domains\Account\Users`,
 			},
-			ReadOnly:  true, // Always read-only for compliance scanner
-			AuditMode: false,
+			ReadOnly:     true, // Always read-only for compliance scanner
+			AuditMode:    false,
+			AuditLogPath: "output/audit",
 		},
 	}
 }
@@ -230,6 +233,7 @@ func setDefaults(v *viper.Viper, cfg *Config) {
 	v.SetDefault("security.deny_registry_paths", cfg.Security.DenyRegistryPaths)
 	v.SetDefault("security.read_only", cfg.Security.ReadOnly)
 	v.SetDefault("security.audit_mode", cfg.Security.AuditMode)
+	v.SetDefault("security.audit_log_path", cfg.Security.AuditLogPath)
 }
 
 // validateConfig performs validation on the loaded configuration

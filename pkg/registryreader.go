@@ -38,8 +38,9 @@ func IsNotExist(err error) bool {
 
 // RegistryReader encapsulates registry operations with context support and observability
 type RegistryReader struct {
-	logger  *slog.Logger
-	timeout time.Duration
+	logger      *slog.Logger
+	timeout     time.Duration
+	auditLogger *AuditLogger
 }
 
 // RegistryReaderOption configures a RegistryReader
@@ -59,11 +60,19 @@ func WithTimeout(timeout time.Duration) RegistryReaderOption {
 	}
 }
 
+// WithAuditLogger sets an audit logger
+func WithAuditLogger(auditLogger *AuditLogger) RegistryReaderOption {
+	return func(r *RegistryReader) {
+		r.auditLogger = auditLogger
+	}
+}
+
 // NewRegistryReader creates a new RegistryReader instance with options
 func NewRegistryReader(opts ...RegistryReaderOption) *RegistryReader {
 	r := &RegistryReader{
-		logger:  slog.Default(),
-		timeout: 5 * time.Second,
+		logger:      slog.Default(),
+		timeout:     5 * time.Second,
+		auditLogger: nil,
 	}
 	for _, opt := range opts {
 		opt(r)
@@ -144,6 +153,8 @@ func (r *RegistryReader) ReadStringWithTimeout(ctx context.Context, rootKey regi
 // ReadValue reads any registry value and returns it as a string (auto-detects type)
 func (r *RegistryReader) ReadValue(ctx context.Context, rootKey registry.Key, path, valueName string) (string, error) {
 	start := time.Now()
+	rootKeyStr := RootKeyToString(rootKey)
+
 	defer func() {
 		r.logger.Debug("registry read completed",
 			slog.String("operation", "ReadValue"),
@@ -224,8 +235,16 @@ func (r *RegistryReader) ReadValue(ctx context.Context, rootKey registry.Key, pa
 			slog.String("value", valueName),
 			slog.Any("error", ctx.Err()),
 		)
+		// Audit: cancelled read
+		if r.auditLogger != nil && r.auditLogger.IsEnabled() {
+			r.auditLogger.LogRegistryRead(rootKeyStr, path, valueName, false, ctx.Err())
+		}
 		return "", fmt.Errorf("registry read cancelled: %w", ctx.Err())
 	case res := <-resultCh:
+		// Audit: completed read
+		if r.auditLogger != nil && r.auditLogger.IsEnabled() {
+			r.auditLogger.LogRegistryRead(rootKeyStr, path, valueName, res.err == nil, res.err)
+		}
 		return res.value, res.err
 	}
 }
