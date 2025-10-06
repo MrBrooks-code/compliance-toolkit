@@ -55,8 +55,9 @@ const (
 
 // Regular expressions for validation
 var (
-	// Registry path must be alphanumeric, backslashes, spaces, hyphens, underscores, dots
-	validRegistryPathRegex = regexp.MustCompile(`^[a-zA-Z0-9\\\s\-_.()]+$`)
+	// Registry path must be alphanumeric, backslashes, spaces, hyphens, underscores, dots, forward slashes
+	// Note: Forward slashes are legitimate in registry key names (e.g., cipher names like "RC4 128/128")
+	validRegistryPathRegex = regexp.MustCompile(`^[a-zA-Z0-9\\\s\-_.()/]+$`)
 
 	// Value names can include more characters but still need sanitization
 	validValueNameRegex = regexp.MustCompile(`^[a-zA-Z0-9\s\-_.()\[\]{}@#$%&+=]+$`)
@@ -184,7 +185,7 @@ func ValidateRegistryPath(path string) error {
 		return &ValidationError{
 			Field:   "Path",
 			Value:   path,
-			Message: "registry path contains disallowed characters (only alphanumeric, backslash, space, hyphen, underscore, dot, parentheses allowed)",
+			Message: "registry path contains disallowed characters (only alphanumeric, backslash, forward slash, space, hyphen, underscore, dot, parentheses allowed)",
 			Code:    ErrCodeInvalidCharacters,
 		}
 	}

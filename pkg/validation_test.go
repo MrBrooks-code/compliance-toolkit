@@ -69,6 +69,7 @@ func TestValidateRegistryPath(t *testing.T) {
 		{"valid path with underscore", "SOFTWARE\\Test_Key", false, 0},
 		{"valid path with dots", "SOFTWARE\\Test.Key.Name", false, 0},
 		{"valid path with parentheses", "SOFTWARE\\Test(1)", false, 0},
+		{"valid path with forward slash", "SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\SCHANNEL\\Ciphers\\RC4 128/128", false, 0},
 
 		// Invalid cases - empty/length
 		{"empty path", "", true, ErrCodeEmptyField},
@@ -78,7 +79,6 @@ func TestValidateRegistryPath(t *testing.T) {
 		{"path with null byte", "SOFTWARE\x00Microsoft", true, ErrCodeInvalidCharacters},
 		{"path with newline", "SOFTWARE\nMicrosoft", true, ErrCodeInvalidCharacters},
 		{"path with tab", "SOFTWARE\tMicrosoft", true, ErrCodeInvalidCharacters},
-		{"path with forward slash", "SOFTWARE/Microsoft", true, ErrCodeInvalidCharacters},
 		{"path with special chars", "SOFTWARE\\Micr@soft", true, ErrCodeInvalidCharacters},
 
 		// Invalid cases - format
