@@ -19,6 +19,7 @@ import (
 type App struct {
 	menu        *pkg.Menu
 	reader      *pkg.RegistryReader
+	auditLogger *pkg.AuditLogger
 	config      *pkg.Config
 	outputDir   string
 	logsDir     string
@@ -187,6 +188,12 @@ func (app *App) init() {
 	os.MkdirAll(app.logsDir, 0755)
 	os.MkdirAll(app.evidenceDir, 0755)
 
+	// Create audit log directory if audit mode is enabled
+	if app.config.Security.AuditMode {
+		auditDir := app.resolveDirectory(app.config.Security.AuditLogPath)
+		os.MkdirAll(auditDir, 0755)
+	}
+
 	// Set up logging based on config
 	var logger *slog.Logger
 
@@ -213,11 +220,34 @@ func (app *App) init() {
 
 	slog.SetDefault(logger)
 
+	// Initialize audit logger if enabled
+	var auditLogger *pkg.AuditLogger
+	if app.config.Security.AuditMode {
+		// Create audit log file path with timestamp
+		auditLogPath := filepath.Join(app.config.Security.AuditLogPath,
+			fmt.Sprintf("audit_%s.log", time.Now().Format("20060102_150405")))
+
+		var err error
+		auditLogger, err = pkg.NewAuditLoggerWithFile(auditLogPath, true)
+		if err != nil {
+			log.Printf("Warning: Failed to create audit logger: %v", err)
+			// Continue without audit logging
+			auditLogger = nil
+		} else {
+			slog.Info("Audit logging enabled", "path", auditLogPath)
+		}
+	}
+	app.auditLogger = auditLogger
+
 	// Initialize registry reader with config values
-	app.reader = pkg.NewRegistryReader(
+	readerOpts := []pkg.RegistryReaderOption{
 		pkg.WithLogger(logger),
 		pkg.WithTimeout(app.config.Server.ReadTimeout),
-	)
+	}
+	if auditLogger != nil {
+		readerOpts = append(readerOpts, pkg.WithAuditLogger(auditLogger))
+	}
+	app.reader = pkg.NewRegistryReader(readerOpts...)
 }
 
 // createLogger creates a structured logger based on config
