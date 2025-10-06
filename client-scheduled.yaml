@@ -1,0 +1,50 @@
+# Compliance Toolkit Client Configuration - Scheduled Mode Test
+
+# Client identification
+client:
+  id: ""                    # Auto-generated if empty
+  hostname: ""              # Auto-detected if empty
+  enabled: true
+
+# Server configuration (leave url empty for standalone mode)
+server:
+  url: ""                   # Empty = standalone mode
+  api_key: ""
+  tls_verify: true
+  timeout: 30s
+  retry_on_startup: false   # Don't run on startup for testing
+
+# Report configuration
+reports:
+  config_path: "configs/reports"
+  output_path: "output/reports"
+  save_local: true
+  reports:
+    - "NIST_800_171_compliance.json"
+
+# Scheduling - ENABLED FOR TESTING (runs every minute)
+schedule:
+  enabled: true
+  cron: "* * * * *"         # Every minute for testing
+
+# Retry configuration
+retry:
+  max_attempts: 3
+  initial_backoff: 30s
+  max_backoff: 5m
+  backoff_multiplier: 2.0
+  retry_on_server_error: true
+
+# Local cache for offline operation
+cache:
+  enabled: true
+  path: "cache/submissions"
+  max_size_mb: 100
+  max_age: 168h
+  auto_clean: true
+
+# Logging configuration
+logging:
+  level: "info"
+  format: "text"
+  output_path: "stdout"
