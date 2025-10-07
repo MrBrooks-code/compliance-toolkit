@@ -109,6 +109,7 @@ type SubmissionSummary struct {
 	Timestamp     time.Time `json:"timestamp"`
 	ReportType    string    `json:"report_type"`
 	OverallStatus string    `json:"overall_status"`
+	TotalChecks   int       `json:"total_checks,omitempty"`
 	PassedChecks  int       `json:"passed_checks"`
 	FailedChecks  int       `json:"failed_checks"`
 }
