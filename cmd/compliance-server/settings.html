@@ -415,7 +415,7 @@
                     <p>Current server version</p>
                 </div>
                 <div class="setting-value">
-                    <span class="stat-badge">v1.0.0</span>
+                    <span class="stat-badge" id="server-version">Loading...</span>
                 </div>
             </div>
             <div class="setting-row">
@@ -424,7 +424,16 @@
                     <p>HTTPS endpoint for clients</p>
                 </div>
                 <div class="setting-value">
-                    <code>https://localhost:8443</code>
+                    <code id="server-address">Loading...</code>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>TLS Status</h3>
+                    <p>HTTPS encryption status</p>
+                </div>
+                <div class="setting-value">
+                    <span class="badge" id="tls-status">Loading...</span>
                 </div>
             </div>
             <div class="setting-row">
@@ -433,7 +442,7 @@
                     <p>Database backend</p>
                 </div>
                 <div class="setting-value">
-                    <span class="badge info">SQLite</span>
+                    <span class="badge info" id="db-type">Loading...</span>
                 </div>
             </div>
             <div class="setting-row">
@@ -442,7 +451,16 @@
                     <p>Location of database file</p>
                 </div>
                 <div class="setting-value">
-                    <code>data/compliance.db</code>
+                    <code id="db-path">Loading...</code>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Authentication</h3>
+                    <p>API key authentication status</p>
+                </div>
+                <div class="setting-value">
+                    <span class="badge" id="auth-status">Loading...</span>
                 </div>
             </div>
         </div>
@@ -459,26 +477,7 @@
             </div>
 
             <ul class="api-key-list" id="api-keys-list">
-                <li class="api-key-item">
-                    <div>
-                        <span class="api-key-text">test-api-key-12345</span>
-                        <span class="badge success" style="margin-left: 12px;">Active</span>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn-secondary" onclick="copyKey('test-api-key-12345')">📋 Copy</button>
-                        <button class="btn-danger" onclick="confirmDeleteKey('test-api-key-12345')">🗑️ Delete</button>
-                    </div>
-                </li>
-                <li class="api-key-item">
-                    <div>
-                        <span class="api-key-text">demo-key-67890</span>
-                        <span class="badge success" style="margin-left: 12px;">Active</span>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn-secondary" onclick="copyKey('demo-key-67890')">📋 Copy</button>
-                        <button class="btn-danger" onclick="confirmDeleteKey('demo-key-67890')">🗑️ Delete</button>
-                    </div>
-                </li>
+                <li style="text-align: center; color: var(--text-secondary);">Loading API keys...</li>
             </ul>
 
             <div style="margin-top: 20px; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
@@ -614,7 +613,7 @@
             document.getElementById('new-api-key').value = key;
         }
 
-        function addApiKey() {
+        async function addApiKey() {
             const key = document.getElementById('new-api-key').value.trim();
             if (!key) {
                 alert('Please enter an API key');
@@ -625,10 +624,29 @@
                 return;
             }
 
-            // In a real implementation, this would call the server API
-            showAlert('API key added successfully! Update server.yaml and restart the server.');
-            closeModal('add-key-modal');
-            document.getElementById('new-api-key').value = '';
+            try {
+                const response = await fetch('/api/v1/settings/apikeys/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer demo-key-67890'
+                    },
+                    body: JSON.stringify({ key: key })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to add API key');
+                }
+
+                showAlert('API key added successfully! (Runtime only - update server.yaml for persistence)', 'success');
+                closeModal('add-key-modal');
+                document.getElementById('new-api-key').value = '';
+                await loadApiKeys(); // Reload the key list
+            } catch (error) {
+                console.error('Failed to add API key:', error);
+                showAlert('Error: ' + error.message, 'error');
+            }
         }
 
         function copyKey(key) {
@@ -637,9 +655,118 @@
             });
         }
 
-        function confirmDeleteKey(key) {
+        async function confirmDeleteKey(key) {
             if (confirm(`Delete API key "${key}"?\n\nClients using this key will no longer be able to connect.`)) {
-                showAlert('API key deleted. Update server.yaml and restart the server.', 'success');
+                try {
+                    const response = await fetch('/api/v1/settings/apikeys/delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer demo-key-67890'
+                        },
+                        body: JSON.stringify({ key: key })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.message || 'Failed to delete API key');
+                    }
+
+                    showAlert('API key deleted successfully! (Runtime only - update server.yaml for persistence)', 'success');
+                    await loadApiKeys(); // Reload the key list
+                } catch (error) {
+                    console.error('Failed to delete API key:', error);
+                    showAlert('Error: ' + error.message, 'error');
+                }
+            }
+        }
+
+        // Load server configuration
+        async function loadServerInfo() {
+            try {
+                // Get server version and status from root endpoint
+                const rootResponse = await fetch('/');
+                const rootData = await rootResponse.json();
+                document.getElementById('server-version').textContent = `v${rootData.version || '1.0.0'}`;
+
+                // Get detailed config from settings API
+                const configResponse = await fetch('/api/v1/settings/config', {
+                    headers: {
+                        'Authorization': 'Bearer demo-key-67890'
+                    }
+                });
+
+                if (!configResponse.ok) throw new Error('Failed to load config');
+
+                const config = await configResponse.json();
+
+                // Update server info
+                const protocol = config.server.tls.enabled ? 'https' : 'http';
+                const address = `${protocol}://${config.server.host}:${config.server.port}`;
+                document.getElementById('server-address').textContent = address;
+
+                // TLS status
+                const tlsStatus = document.getElementById('tls-status');
+                if (config.server.tls.enabled) {
+                    tlsStatus.textContent = 'Enabled';
+                    tlsStatus.className = 'badge success';
+                } else {
+                    tlsStatus.textContent = 'Disabled';
+                    tlsStatus.className = 'badge warning';
+                }
+
+                // Database info
+                document.getElementById('db-type').textContent = config.database.type.toUpperCase();
+                document.getElementById('db-path').textContent = config.database.path;
+
+                // Auth status
+                const authStatus = document.getElementById('auth-status');
+                if (config.auth.enabled && config.auth.require_key) {
+                    authStatus.textContent = `Enabled (${config.auth.key_count} keys)`;
+                    authStatus.className = 'badge success';
+                } else {
+                    authStatus.textContent = 'Disabled';
+                    authStatus.className = 'badge danger';
+                }
+
+            } catch (error) {
+                console.error('Failed to load server info:', error);
+                document.getElementById('server-version').textContent = 'Error';
+            }
+        }
+
+        // API Key management - Load from server
+        async function loadApiKeys() {
+            try {
+                const response = await fetch('/api/v1/settings/apikeys', {
+                    headers: {
+                        'Authorization': 'Bearer demo-key-67890'
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load API keys');
+
+                const keys = await response.json();
+
+                const html = keys.length > 0 ? keys.map(keyObj => `
+                    <li class="api-key-item">
+                        <div>
+                            <span class="api-key-text">${keyObj.key}</span>
+                            <span class="badge success" style="margin-left: 12px;">Active</span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-secondary" onclick="copyKey('${keyObj.key}')">📋 Copy</button>
+                            <button class="btn-danger" onclick="confirmDeleteKey('${keyObj.key}')">🗑️ Delete</button>
+                        </div>
+                    </li>
+                `).join('') : '<li style="text-align: center; color: var(--text-secondary);">No API keys configured</li>';
+
+                document.getElementById('api-keys-list').innerHTML = html;
+
+            } catch (error) {
+                console.error('Failed to load API keys:', error);
+                document.getElementById('api-keys-list').innerHTML =
+                    '<li style="text-align: center; color: var(--danger);">Failed to load API keys</li>';
             }
         }
 
@@ -720,7 +847,9 @@
             }
         }
 
-        // Load clients on page load
+        // Load data on page load
+        loadServerInfo();
+        loadApiKeys();
         loadClients();
     </script>
 </body>

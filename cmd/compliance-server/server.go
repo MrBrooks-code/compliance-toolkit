@@ -59,6 +59,13 @@ func (s *ComplianceServer) registerRoutes() {
 		s.mux.HandleFunc("/api/v1/dashboard/summary", s.handleDashboardSummary)
 	}
 
+	// Settings API endpoints
+	s.mux.HandleFunc("/api/v1/settings/config", s.authMiddleware(s.handleGetConfig))
+	s.mux.HandleFunc("/api/v1/settings/config/update", s.authMiddleware(s.handleUpdateConfig))
+	s.mux.HandleFunc("/api/v1/settings/apikeys", s.authMiddleware(s.handleAPIKeys))
+	s.mux.HandleFunc("/api/v1/settings/apikeys/add", s.authMiddleware(s.handleAddAPIKey))
+	s.mux.HandleFunc("/api/v1/settings/apikeys/delete", s.authMiddleware(s.handleDeleteAPIKey))
+
 	// Root handler
 	s.mux.HandleFunc("/", s.handleRoot)
 }
@@ -432,4 +439,190 @@ func (s *ComplianceServer) sendError(w http.ResponseWriter, code int, message st
 		Message: message,
 		Code:    code,
 	})
+}
+
+// handleGetConfig returns current server configuration (sanitized)
+func (s *ComplianceServer) handleGetConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Create sanitized config (don't expose sensitive data like API keys)
+	configResponse := map[string]interface{}{
+		"server": map[string]interface{}{
+			"host": s.config.Server.Host,
+			"port": s.config.Server.Port,
+			"tls": map[string]interface{}{
+				"enabled":   s.config.Server.TLS.Enabled,
+				"cert_file": s.config.Server.TLS.CertFile,
+				"key_file":  s.config.Server.TLS.KeyFile,
+			},
+		},
+		"database": map[string]interface{}{
+			"type": s.config.Database.Type,
+			"path": s.config.Database.Path,
+		},
+		"auth": map[string]interface{}{
+			"enabled":     s.config.Auth.Enabled,
+			"require_key": s.config.Auth.RequireKey,
+			"key_count":   len(s.config.Auth.APIKeys),
+		},
+		"dashboard": map[string]interface{}{
+			"enabled": s.config.Dashboard.Enabled,
+			"path":    s.config.Dashboard.Path,
+		},
+		"logging": map[string]interface{}{
+			"level":  s.config.Logging.Level,
+			"format": s.config.Logging.Format,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(configResponse)
+}
+
+// handleUpdateConfig updates server configuration
+func (s *ComplianceServer) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var updates map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
+		s.sendError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	// Apply updates (limited to non-sensitive settings for safety)
+	// Note: This updates runtime config only, not the YAML file
+	// TODO: Add YAML file persistence if needed
+
+	if logging, ok := updates["logging"].(map[string]interface{}); ok {
+		if level, ok := logging["level"].(string); ok {
+			s.config.Logging.Level = level
+			s.logger.Info("Logging level updated", "new_level", level)
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"message": "Configuration updated (runtime only)",
+	})
+}
+
+// handleAPIKeys returns list of API keys (masked)
+func (s *ComplianceServer) handleAPIKeys(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Mask API keys for security
+	maskedKeys := make([]map[string]string, 0, len(s.config.Auth.APIKeys))
+	for i, key := range s.config.Auth.APIKeys {
+		masked := maskAPIKey(key)
+		maskedKeys = append(maskedKeys, map[string]string{
+			"id":     fmt.Sprintf("key-%d", i+1),
+			"key":    masked,
+			"masked": "true",
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(maskedKeys)
+}
+
+// handleAddAPIKey adds a new API key
+func (s *ComplianceServer) handleAddAPIKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Key string `json:"key"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.sendError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	if request.Key == "" {
+		s.sendError(w, http.StatusBadRequest, "API key cannot be empty")
+		return
+	}
+
+	// Check for duplicates
+	for _, existingKey := range s.config.Auth.APIKeys {
+		if existingKey == request.Key {
+			s.sendError(w, http.StatusConflict, "API key already exists")
+			return
+		}
+	}
+
+	// Add to runtime config
+	s.config.Auth.APIKeys = append(s.config.Auth.APIKeys, request.Key)
+
+	s.logger.Info("API key added", "key_preview", maskAPIKey(request.Key))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"message": "API key added successfully",
+	})
+}
+
+// handleDeleteAPIKey deletes an API key
+func (s *ComplianceServer) handleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Key string `json:"key"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.sendError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	// Find and remove key
+	found := false
+	newKeys := make([]string, 0, len(s.config.Auth.APIKeys))
+	for _, key := range s.config.Auth.APIKeys {
+		if key != request.Key {
+			newKeys = append(newKeys, key)
+		} else {
+			found = true
+		}
+	}
+
+	if !found {
+		s.sendError(w, http.StatusNotFound, "API key not found")
+		return
+	}
+
+	s.config.Auth.APIKeys = newKeys
+
+	s.logger.Info("API key deleted", "key_preview", maskAPIKey(request.Key))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"message": "API key deleted successfully",
+	})
+}
+
+// maskAPIKey masks an API key for display
+func maskAPIKey(key string) string {
+	if len(key) <= 8 {
+		return "****"
+	}
+	return key[:4] + "****" + key[len(key)-4:]
 }
