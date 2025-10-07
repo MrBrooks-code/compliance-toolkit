@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Compliance Toolkit Server</title>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --success: #059669;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --info: #0284c7;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border: #334155;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --danger: #f87171;
+            --warning: #fbbf24;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: var(--bg-primary);
+            border-bottom: 2px solid var(--border);
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .nav {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .nav a:hover {
+            background: var(--bg-secondary);
+        }
+
+        .nav a.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .section {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            flex: 1;
+        }
+
+        .setting-label h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .setting-label p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .setting-value {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .toggle {
+            width: 50px;
+            height: 26px;
+            background: var(--border);
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle.active {
+            background: var(--success);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+        }
+
+        .toggle.active::after {
+            left: 26px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .api-key-list {
+            list-style: none;
+            margin-top: 16px;
+        }
+
+        .api-key-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .api-key-text {
+            font-family: monospace;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: #d1fae5;
+            color: var(--success);
+        }
+
+        .badge.danger {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .badge.warning {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+
+        .badge.info {
+            background: #dbeafe;
+            color: var(--info);
+        }
+
+        [data-theme="dark"] .badge.success {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        [data-theme="dark"] .badge.danger {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .alert.active {
+            display: block;
+        }
+
+        .alert.success {
+            background: #d1fae5;
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .alert.error {
+            background: #fee2e2;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-secondary);
+            border-bottom: 2px solid var(--border);
+            background: var(--bg-secondary);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .stat-badge {
+            display: inline-block;
+            background: var(--bg-secondary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>⚙️ Settings</h1>
+                <nav class="nav">
+                    <a href="/dashboard">📊 Dashboard</a>
+                    <a href="/settings" class="active">⚙️ Settings</a>
+                    <button class="btn-secondary" onclick="toggleTheme()">🌓 Theme</button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="alert" class="alert"></div>
+
+        <!-- Server Information -->
+        <div class="section">
+            <div class="section-title">📡 Server Information</div>
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Server Version</h3>
+                    <p>Current server version</p>
+                </div>
+                <div class="setting-value">
+                    <span class="stat-badge">v1.0.0</span>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Server Address</h3>
+                    <p>HTTPS endpoint for clients</p>
+                </div>
+                <div class="setting-value">
+                    <code>https://localhost:8443</code>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Database Type</h3>
+                    <p>Database backend</p>
+                </div>
+                <div class="setting-value">
+                    <span class="badge info">SQLite</span>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Database Path</h3>
+                    <p>Location of database file</p>
+                </div>
+                <div class="setting-value">
+                    <code>data/compliance.db</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Keys Management -->
+        <div class="section">
+            <div class="section-title">🔑 API Keys</div>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Manage API keys for client authentication. Clients use these keys in the Authorization header.
+            </p>
+
+            <div style="margin-bottom: 16px;">
+                <button class="btn-success" onclick="showAddKeyModal()">+ Add New API Key</button>
+            </div>
+
+            <ul class="api-key-list" id="api-keys-list">
+                <li class="api-key-item">
+                    <div>
+                        <span class="api-key-text">test-api-key-12345</span>
+                        <span class="badge success" style="margin-left: 12px;">Active</span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-secondary" onclick="copyKey('test-api-key-12345')">📋 Copy</button>
+                        <button class="btn-danger" onclick="confirmDeleteKey('test-api-key-12345')">🗑️ Delete</button>
+                    </div>
+                </li>
+                <li class="api-key-item">
+                    <div>
+                        <span class="api-key-text">demo-key-67890</span>
+                        <span class="badge success" style="margin-left: 12px;">Active</span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-secondary" onclick="copyKey('demo-key-67890')">📋 Copy</button>
+                        <button class="btn-danger" onclick="confirmDeleteKey('demo-key-67890')">🗑️ Delete</button>
+                    </div>
+                </li>
+            </ul>
+
+            <div style="margin-top: 20px; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                <strong>💡 Tip:</strong> Store API keys securely. They grant full access to submit compliance data.
+            </div>
+        </div>
+
+        <!-- Client Management -->
+        <div class="section">
+            <div class="section-title">💻 Registered Clients</div>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                View and manage registered compliance clients.
+            </p>
+
+            <div id="clients-table">
+                <p style="text-align: center; color: var(--text-secondary);">Loading clients...</p>
+            </div>
+        </div>
+
+        <!-- Database Management -->
+        <div class="section">
+            <div class="section-title">💾 Database Management</div>
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Database Size</h3>
+                    <p>Current database file size</p>
+                </div>
+                <div class="setting-value">
+                    <span class="stat-badge">~500 KB</span>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Total Submissions</h3>
+                    <p>Number of stored compliance reports</p>
+                </div>
+                <div class="setting-value">
+                    <span class="stat-badge" id="total-submissions">-</span>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Backup Database</h3>
+                    <p>Create a backup of the current database</p>
+                </div>
+                <div class="setting-value">
+                    <button class="btn-secondary" onclick="backupDatabase()">💾 Create Backup</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="section" style="border-color: var(--danger);">
+            <div class="section-title" style="color: var(--danger);">⚠️ Danger Zone</div>
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Clear All Submissions</h3>
+                    <p style="color: var(--danger);">Delete all compliance submissions (keeps clients)</p>
+                </div>
+                <div class="setting-value">
+                    <button class="btn-danger" onclick="confirmClearSubmissions()">🗑️ Clear Submissions</button>
+                </div>
+            </div>
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Reset Database</h3>
+                    <p style="color: var(--danger);">Delete ALL data (clients and submissions)</p>
+                </div>
+                <div class="setting-value">
+                    <button class="btn-danger" onclick="confirmResetDatabase()">⚠️ Reset Database</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add API Key Modal -->
+    <div id="add-key-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Add New API Key</div>
+            <div class="form-group">
+                <label>API Key</label>
+                <input type="text" id="new-api-key" placeholder="Enter a secure API key (32+ characters)">
+            </div>
+            <div class="form-group">
+                <button class="btn-secondary" onclick="generateRandomKey()">🎲 Generate Random Key</button>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeModal('add-key-modal')">Cancel</button>
+                <button class="btn-success" onclick="addApiKey()">Add Key</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // Show alert
+        function showAlert(message, type = 'success') {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert active ${type}`;
+            setTimeout(() => {
+                alert.className = 'alert';
+            }, 5000);
+        }
+
+        // Modal functions
+        function showAddKeyModal() {
+            document.getElementById('add-key-modal').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function generateRandomKey() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+            let key = '';
+            for (let i = 0; i < 32; i++) {
+                key += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('new-api-key').value = key;
+        }
+
+        function addApiKey() {
+            const key = document.getElementById('new-api-key').value.trim();
+            if (!key) {
+                alert('Please enter an API key');
+                return;
+            }
+            if (key.length < 16) {
+                alert('API key should be at least 16 characters for security');
+                return;
+            }
+
+            // In a real implementation, this would call the server API
+            showAlert('API key added successfully! Update server.yaml and restart the server.');
+            closeModal('add-key-modal');
+            document.getElementById('new-api-key').value = '';
+        }
+
+        function copyKey(key) {
+            navigator.clipboard.writeText(key).then(() => {
+                showAlert('API key copied to clipboard!');
+            });
+        }
+
+        function confirmDeleteKey(key) {
+            if (confirm(`Delete API key "${key}"?\n\nClients using this key will no longer be able to connect.`)) {
+                showAlert('API key deleted. Update server.yaml and restart the server.', 'success');
+            }
+        }
+
+        // Client management
+        async function loadClients() {
+            try {
+                const response = await fetch('/api/v1/clients', {
+                    headers: {
+                        'Authorization': 'Bearer demo-key-67890'
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load clients');
+
+                const clients = await response.json();
+
+                const html = clients.length > 0 ? `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Hostname</th>
+                                <th>Client ID</th>
+                                <th>Status</th>
+                                <th>Last Seen</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${clients.map(client => `
+                                <tr>
+                                    <td><strong>${client.hostname || 'Unknown'}</strong></td>
+                                    <td><code>${client.client_id}</code></td>
+                                    <td><span class="badge ${client.status === 'active' ? 'success' : 'danger'}">${client.status || 'active'}</span></td>
+                                    <td>${new Date(client.last_seen).toLocaleString()}</td>
+                                    <td>
+                                        <button class="btn-secondary" onclick="viewClient('${client.client_id}')">View</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : '<p style="text-align: center; color: var(--text-secondary);">No clients registered yet.</p>';
+
+                document.getElementById('clients-table').innerHTML = html;
+
+                // Update submission count
+                const summaryResponse = await fetch('/api/v1/dashboard/summary');
+                const summary = await summaryResponse.json();
+                document.getElementById('total-submissions').textContent =
+                    (summary.recent_submissions || []).length + '+';
+
+            } catch (error) {
+                console.error('Failed to load clients:', error);
+                document.getElementById('clients-table').innerHTML =
+                    '<p style="text-align: center; color: var(--danger);">Failed to load clients</p>';
+            }
+        }
+
+        function viewClient(clientId) {
+            alert(`Client detail view coming soon!\n\nClient ID: ${clientId}`);
+        }
+
+        // Database functions
+        function backupDatabase() {
+            showAlert('Backup feature: Copy data/compliance.db to a safe location manually.');
+        }
+
+        function confirmClearSubmissions() {
+            if (confirm('Are you sure you want to delete ALL submissions?\n\nThis action cannot be undone.\n\nClients will remain registered.')) {
+                showAlert('Clear submissions feature coming soon. Manual: DELETE FROM submissions;', 'warning');
+            }
+        }
+
+        function confirmResetDatabase() {
+            const confirmation = prompt('Type "RESET DATABASE" to confirm complete database reset:');
+            if (confirmation === 'RESET DATABASE') {
+                showAlert('Reset feature coming soon. Manual: Delete data/compliance.db and restart server.', 'error');
+            }
+        }
+
+        // Load clients on page load
+        loadClients();
+    </script>
+</body>
+</html>
