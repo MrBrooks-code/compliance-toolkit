@@ -585,3 +585,21 @@ func (d *Database) GetClientSubmissions(clientID string) ([]api.SubmissionSummar
 
 	return submissions, nil
 }
+
+// ClearClientHistory deletes all submissions for a specific client
+func (d *Database) ClearClientHistory(clientID string) (int64, error) {
+	query := `DELETE FROM submissions WHERE client_id = ?`
+
+	result, err := d.db.Exec(query, clientID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to clear client history: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	d.logger.Info("Cleared client history", "client_id", clientID, "submissions_deleted", rowsAffected)
+	return rowsAffected, nil
+}
