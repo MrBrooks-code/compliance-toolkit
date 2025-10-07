@@ -104,6 +104,23 @@
             padding: 8px;
         }
 
+        .logout-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
         .section {
             background: var(--bg-primary);
             border: 1px solid var(--border);
@@ -412,6 +429,7 @@
                 <a href="/policies">Policies</a>
                 <a href="/settings" class="active">Settings</a>
                 <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌓</button>
+                <button class="logout-btn" onclick="logout()" title="Logout">Logout</button>
             </nav>
         </div>
     </header>
@@ -495,6 +513,29 @@
 
             <div style="margin-top: 20px; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
                 <strong>💡 Tip:</strong> Store API keys securely. They grant full access to submit compliance data.
+            </div>
+        </div>
+
+        <!-- User Management -->
+        <div class="section">
+            <div class="section-title">👤 User Management</div>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Manage user accounts for web dashboard access.
+            </p>
+
+            <div style="margin-bottom: 16px;">
+                <button class="btn-success" onclick="showAddUserModal()">+ Add New User</button>
+            </div>
+
+            <div id="users-table">
+                <p style="text-align: center; color: var(--text-secondary);">Loading users...</p>
+            </div>
+
+            <div style="margin-top: 20px; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                <strong>💡 Roles:</strong><br>
+                <strong>Admin:</strong> Full access including user management<br>
+                <strong>Viewer:</strong> Read-only dashboard access<br>
+                <strong>Auditor:</strong> View reports and export data
             </div>
         </div>
 
@@ -584,6 +625,49 @@
         </div>
     </div>
 
+    <!-- Add User Modal -->
+    <div id="add-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Add New User</div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="new-username" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="new-password" placeholder="Enter password (min 8 characters)">
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <select id="new-role">
+                    <option value="admin">Admin - Full access</option>
+                    <option value="viewer" selected>Viewer - Read-only</option>
+                    <option value="auditor">Auditor - View & export</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeModal('add-user-modal')">Cancel</button>
+                <button class="btn-success" onclick="addUser()">Create User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="change-password-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">Change Password</div>
+            <input type="hidden" id="change-password-username">
+            <div class="form-group">
+                <label>New Password</label>
+                <input type="password" id="change-new-password" placeholder="Enter new password (min 8 characters)">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeModal('change-password-modal')">Cancel</button>
+                <button class="btn-success" onclick="changePassword()">Change Password</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Theme toggle
         function toggleTheme() {
@@ -597,6 +681,25 @@
         // Load saved theme
         const savedTheme = localStorage.getItem('theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/api/v1/auth/logout', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Logout failed. Please try again.');
+            }
+        }
 
         // Show alert
         function showAlert(message, type = 'success') {
@@ -860,10 +963,163 @@
             }
         }
 
+        // User management
+        function showAddUserModal() {
+            document.getElementById('add-user-modal').classList.add('active');
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/v1/users', {
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) throw new Error('Failed to load users');
+
+                const users = await response.json();
+
+                const html = users.length > 0 ? `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Created</th>
+                                <th>Last Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${users.map(user => `
+                                <tr>
+                                    <td><strong>${user.username}</strong></td>
+                                    <td><span class="badge ${user.role === 'admin' ? 'danger' : user.role === 'auditor' ? 'warning' : 'secondary'}">${user.role}</span></td>
+                                    <td>${new Date(user.created_at).toLocaleDateString()}</td>
+                                    <td>${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</td>
+                                    <td>
+                                        <button class="btn-secondary" onclick="showChangePasswordModal('${user.username}')">🔑 Change Password</button>
+                                        <button class="btn-danger" onclick="deleteUser('${user.username}')">Delete</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : '<p style="text-align: center; color: var(--text-secondary);">No users found.</p>';
+
+                document.getElementById('users-table').innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                document.getElementById('users-table').innerHTML =
+                    '<p style="text-align: center; color: var(--danger);">Failed to load users</p>';
+            }
+        }
+
+        async function addUser() {
+            const username = document.getElementById('new-username').value.trim();
+            const password = document.getElementById('new-password').value;
+            const role = document.getElementById('new-role').value;
+
+            if (!username || !password) {
+                alert('Username and password are required');
+                return;
+            }
+
+            if (password.length < 8) {
+                alert('Password must be at least 8 characters');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/users/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ username, password, role })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to create user');
+                }
+
+                showAlert('User created successfully!', 'success');
+                closeModal('add-user-modal');
+                document.getElementById('new-username').value = '';
+                document.getElementById('new-password').value = '';
+                await loadUsers();
+            } catch (error) {
+                console.error('Failed to create user:', error);
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        function showChangePasswordModal(username) {
+            document.getElementById('change-password-username').value = username;
+            document.getElementById('change-password-modal').classList.add('active');
+        }
+
+        async function changePassword() {
+            const username = document.getElementById('change-password-username').value;
+            const newPassword = document.getElementById('change-new-password').value;
+
+            if (!newPassword || newPassword.length < 8) {
+                alert('Password must be at least 8 characters');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/users/change-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ username, new_password: newPassword })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to change password');
+                }
+
+                showAlert(`Password changed for user: ${username}`, 'success');
+                closeModal('change-password-modal');
+                document.getElementById('change-new-password').value = '';
+            } catch (error) {
+                console.error('Failed to change password:', error);
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteUser(username) {
+            if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/users/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ username })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to delete user');
+                }
+
+                showAlert('User deleted successfully!', 'success');
+                await loadUsers();
+            } catch (error) {
+                console.error('Failed to delete user:', error);
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
         // Load data on page load
         loadServerInfo();
         loadApiKeys();
         loadClients();
+        loadUsers();
     </script>
 </body>
 </html>
