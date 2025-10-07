@@ -99,6 +99,23 @@
             padding: 8px;
         }
 
+        .logout-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
         .breadcrumb {
             font-size: 14px;
             color: var(--text-secondary);
@@ -457,6 +474,7 @@
                 <a href="/policies">Policies</a>
                 <a href="/settings">Settings</a>
                 <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌓</button>
+                <button class="logout-btn" onclick="logout()" title="Logout">Logout</button>
             </nav>
         </div>
     </header>
@@ -857,6 +875,25 @@
         function loadTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/api/v1/auth/logout', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Logout failed. Please try again.');
+            }
         }
 
         // Initialize on page load

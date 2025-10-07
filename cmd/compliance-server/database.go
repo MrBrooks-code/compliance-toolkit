@@ -126,6 +126,16 @@ func (d *Database) initSchema() error {
 		UNIQUE(client_id, policy_id)
 	);
 
+	-- Users table for authentication
+	CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT UNIQUE NOT NULL,
+		password_hash TEXT NOT NULL,
+		role TEXT NOT NULL CHECK(role IN ('admin', 'viewer', 'auditor')),
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		last_login TIMESTAMP
+	);
+
 	-- Indexes for performance
 	CREATE INDEX IF NOT EXISTS idx_submissions_client_id ON submissions(client_id);
 	CREATE INDEX IF NOT EXISTS idx_submissions_timestamp ON submissions(timestamp);
@@ -135,6 +145,7 @@ func (d *Database) initSchema() error {
 	CREATE INDEX IF NOT EXISTS idx_policies_status ON policies(status);
 	CREATE INDEX IF NOT EXISTS idx_client_policies_client_id ON client_policies(client_id);
 	CREATE INDEX IF NOT EXISTS idx_client_policies_policy_id ON client_policies(policy_id);
+	CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 	`
 
 	if _, err := d.db.Exec(schema); err != nil {
@@ -855,4 +866,175 @@ func (d *Database) DeletePolicy(policyID string) error {
 
 	d.logger.Info("Policy deleted", "policy_id", policyID)
 	return nil
+}
+
+// User represents a user account
+type User struct {
+	ID           int    `json:"id"`
+	Username     string `json:"username"`
+	PasswordHash string `json:"-"` // Never expose in JSON
+	Role         string `json:"role"`
+	CreatedAt    string `json:"created_at"`
+	LastLogin    string `json:"last_login,omitempty"`
+}
+
+// CreateUser creates a new user with hashed password
+func (d *Database) CreateUser(username, passwordHash, role string) error {
+	query := `INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`
+
+	_, err := d.db.Exec(query, username, passwordHash, role)
+	if err != nil {
+		return fmt.Errorf("failed to create user: %w", err)
+	}
+
+	d.logger.Info("User created", "username", username, "role", role)
+	return nil
+}
+
+// GetUser retrieves a user by username
+func (d *Database) GetUser(username string) (*User, error) {
+	query := `SELECT id, username, password_hash, role, created_at, last_login FROM users WHERE username = ?`
+
+	var user User
+	var lastLogin sql.NullString
+
+	err := d.db.QueryRow(query, username).Scan(
+		&user.ID,
+		&user.Username,
+		&user.PasswordHash,
+		&user.Role,
+		&user.CreatedAt,
+		&lastLogin,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("user not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query user: %w", err)
+	}
+
+	if lastLogin.Valid {
+		user.LastLogin = lastLogin.String
+	}
+
+	return &user, nil
+}
+
+// ListUsers retrieves all users
+func (d *Database) ListUsers() ([]User, error) {
+	query := `SELECT id, username, role, created_at, last_login FROM users ORDER BY created_at DESC`
+
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query users: %w", err)
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var user User
+		var lastLogin sql.NullString
+
+		err := rows.Scan(
+			&user.ID,
+			&user.Username,
+			&user.Role,
+			&user.CreatedAt,
+			&lastLogin,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", err)
+		}
+
+		if lastLogin.Valid {
+			user.LastLogin = lastLogin.String
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+// UpdateUserLastLogin updates the last_login timestamp
+func (d *Database) UpdateUserLastLogin(username string) error {
+	query := `UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE username = ?`
+
+	_, err := d.db.Exec(query, username)
+	if err != nil {
+		return fmt.Errorf("failed to update last login: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateUserPassword updates a user's password hash
+func (d *Database) UpdateUserPassword(username, passwordHash string) error {
+	query := `UPDATE users SET password_hash = ? WHERE username = ?`
+
+	result, err := d.db.Exec(query, passwordHash, username)
+	if err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	d.logger.Info("User password updated", "username", username)
+	return nil
+}
+
+// DeleteUser deletes a user
+func (d *Database) DeleteUser(username string) error {
+	query := `DELETE FROM users WHERE username = ?`
+
+	result, err := d.db.Exec(query, username)
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	d.logger.Info("User deleted", "username", username)
+	return nil
+}
+
+// UserExists checks if a user exists
+func (d *Database) UserExists(username string) (bool, error) {
+	query := `SELECT COUNT(*) FROM users WHERE username = ?`
+
+	var count int
+	err := d.db.QueryRow(query, username).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check user existence: %w", err)
+	}
+
+	return count > 0, nil
+}
+
+// HasAnyUsers checks if any users exist in the database
+func (d *Database) HasAnyUsers() (bool, error) {
+	query := `SELECT COUNT(*) FROM users`
+
+	var count int
+	err := d.db.QueryRow(query).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check users: %w", err)
+	}
+
+	return count > 0, nil
 }

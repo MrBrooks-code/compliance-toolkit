@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"compliancetoolkit/pkg/api"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ComplianceServer is the main server instance
@@ -38,10 +39,44 @@ func NewComplianceServer(config *ServerConfig, logger *slog.Logger) (*Compliance
 		mux:    http.NewServeMux(),
 	}
 
+	// Create initial admin user if no users exist
+	if err := server.ensureAdminUser(); err != nil {
+		logger.Warn("Failed to create initial admin user", "error", err)
+	}
+
 	// Register routes
 	server.registerRoutes()
 
 	return server, nil
+}
+
+// ensureAdminUser creates an initial admin user if no users exist
+func (s *ComplianceServer) ensureAdminUser() error {
+	hasUsers, err := s.db.HasAnyUsers()
+	if err != nil {
+		return fmt.Errorf("failed to check for users: %w", err)
+	}
+
+	if !hasUsers {
+		// Create default admin user
+		defaultPassword := "admin"
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(defaultPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return fmt.Errorf("failed to hash default password: %w", err)
+		}
+
+		if err := s.db.CreateUser("admin", string(passwordHash), "admin"); err != nil {
+			return fmt.Errorf("failed to create admin user: %w", err)
+		}
+
+		s.logger.Warn("Created default admin user",
+			"username", "admin",
+			"password", "admin",
+			"warning", "PLEASE CHANGE THIS PASSWORD IMMEDIATELY",
+		)
+	}
+
+	return nil
 }
 
 // registerRoutes sets up HTTP handlers
@@ -56,15 +91,20 @@ func (s *ComplianceServer) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/clients/", s.authMiddleware(s.handleClientDetail))
 	s.mux.HandleFunc("/api/v1/clients", s.authMiddleware(s.handleListClients))
 
+	// Authentication endpoints
+	s.mux.HandleFunc("/login", s.handleLoginPage)
+	s.mux.HandleFunc("/api/v1/auth/login", s.handleLogin)
+	s.mux.HandleFunc("/api/v1/auth/logout", s.handleLogout)
+	s.mux.HandleFunc("/api/v1/auth/session", s.handleGetSession)
+
 	// Dashboard (if enabled)
 	if s.config.Dashboard.Enabled {
-		s.mux.HandleFunc(s.config.Dashboard.Path, s.handleDashboard)
-		s.mux.HandleFunc("/settings", s.handleSettings)
-		s.mux.HandleFunc("/policies", s.handlePoliciesPage)
-		s.mux.HandleFunc("/client-detail", s.handleClientDetailPage)
-		s.mux.HandleFunc("/submission-detail", s.handleSubmissionDetailPage)
-		s.mux.HandleFunc("/api/v1/dashboard/summary", s.handleDashboardSummary)
-		s.mux.HandleFunc("/api/v1/auth/session", s.handleGetSession)
+		s.mux.HandleFunc(s.config.Dashboard.Path, s.requireAuth(s.handleDashboard))
+		s.mux.HandleFunc("/settings", s.requireAuth(s.handleSettings))
+		s.mux.HandleFunc("/policies", s.requireAuth(s.handlePoliciesPage))
+		s.mux.HandleFunc("/client-detail", s.requireAuth(s.handleClientDetailPage))
+		s.mux.HandleFunc("/submission-detail", s.requireAuth(s.handleSubmissionDetailPage))
+		s.mux.HandleFunc("/api/v1/dashboard/summary", s.requireAuth(s.handleDashboardSummary))
 	}
 
 	// Submission endpoints
@@ -79,6 +119,12 @@ func (s *ComplianceServer) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/settings/apikeys", s.authMiddleware(s.handleAPIKeys))
 	s.mux.HandleFunc("/api/v1/settings/apikeys/add", s.authMiddleware(s.handleAddAPIKey))
 	s.mux.HandleFunc("/api/v1/settings/apikeys/delete", s.authMiddleware(s.handleDeleteAPIKey))
+
+	// User management API endpoints
+	s.mux.HandleFunc("/api/v1/users", s.authMiddleware(s.handleUsers))
+	s.mux.HandleFunc("/api/v1/users/create", s.authMiddleware(s.handleCreateUser))
+	s.mux.HandleFunc("/api/v1/users/delete", s.authMiddleware(s.handleDeleteUser))
+	s.mux.HandleFunc("/api/v1/users/change-password", s.authMiddleware(s.handleChangePassword))
 
 	// Policy API endpoints
 	s.mux.HandleFunc("/api/v1/policies/import", s.authMiddleware(s.handleImportPolicies))
@@ -146,6 +192,151 @@ func (s *ComplianceServer) Shutdown() error {
 
 	s.logger.Info("Server shutdown complete")
 	return nil
+}
+
+// handleLoginPage serves the login page
+func (s *ComplianceServer) handleLoginPage(w http.ResponseWriter, r *http.Request) {
+	html, err := os.ReadFile("login.html")
+	if err != nil {
+		s.logger.Error("Failed to read login.html", "error", err)
+		http.Error(w, "Login page not available", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(html)
+}
+
+// handleLogin processes login requests
+func (s *ComplianceServer) handleLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.sendError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	var loginReq struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&loginReq); err != nil {
+		s.sendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Validate inputs
+	if loginReq.Username == "" || loginReq.Password == "" {
+		s.sendError(w, http.StatusBadRequest, "Username and password required")
+		return
+	}
+
+	// Get user from database
+	user, err := s.db.GetUser(loginReq.Username)
+	if err != nil {
+		s.logger.Warn("Login attempt for non-existent user", "username", loginReq.Username)
+		s.sendError(w, http.StatusUnauthorized, "Invalid username or password")
+		return
+	}
+
+	// Verify password
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(loginReq.Password))
+	if err != nil {
+		s.logger.Warn("Failed login attempt", "username", loginReq.Username, "remote_addr", r.RemoteAddr)
+		s.sendError(w, http.StatusUnauthorized, "Invalid username or password")
+		return
+	}
+
+	// Update last login timestamp
+	if err := s.db.UpdateUserLastLogin(loginReq.Username); err != nil {
+		s.logger.Error("Failed to update last login", "username", loginReq.Username, "error", err)
+	}
+
+	// Create session cookie
+	sessionCookie := &http.Cookie{
+		Name:     "session_user",
+		Value:    loginReq.Username,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // Set to true if using HTTPS
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   86400 * 7, // 7 days
+	}
+	http.SetCookie(w, sessionCookie)
+
+	// Also set role cookie for frontend
+	roleCookie := &http.Cookie{
+		Name:     "session_role",
+		Value:    user.Role,
+		Path:     "/",
+		HttpOnly: false, // Allow JS to read role for UI
+		Secure:   false,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   86400 * 7,
+	}
+	http.SetCookie(w, roleCookie)
+
+	s.logger.Info("User logged in", "username", loginReq.Username, "role", user.Role)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":  true,
+		"username": user.Username,
+		"role":     user.Role,
+	})
+}
+
+// handleLogout processes logout requests
+func (s *ComplianceServer) handleLogout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.sendError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	// Clear session cookies
+	sessionCookie := &http.Cookie{
+		Name:     "session_user",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   -1,
+	}
+	http.SetCookie(w, sessionCookie)
+
+	roleCookie := &http.Cookie{
+		Name:     "session_role",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: false,
+		MaxAge:   -1,
+	}
+	http.SetCookie(w, roleCookie)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+}
+
+// requireAuth middleware for web pages - redirects to login if not authenticated
+func (s *ComplianceServer) requireAuth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get session cookie
+		cookie, err := r.Cookie("session_user")
+		if err != nil || cookie.Value == "" {
+			// Not authenticated, redirect to login
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		// Verify user exists in database
+		_, err = s.db.GetUser(cookie.Value)
+		if err != nil {
+			// Invalid session, redirect to login
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		// User is authenticated, proceed
+		next(w, r)
+	}
 }
 
 // handleRoot handles root path requests
@@ -400,16 +591,27 @@ func (s *ComplianceServer) authMiddleware(next http.HandlerFunc) http.HandlerFun
 			return
 		}
 
+		// Check for session authentication first (username/password login)
+		if sessionCookie, err := r.Cookie("session_user"); err == nil && sessionCookie.Value != "" {
+			// Verify session is valid
+			if _, err := s.db.GetUser(sessionCookie.Value); err == nil {
+				// Valid session, allow access
+				next(w, r)
+				return
+			}
+		}
+
+		// Fall back to API key authentication
 		var apiKey string
 
-		// Try to get API key from cookie first (for dashboard/web UI)
+		// Try to get API key from cookie (for dashboard/web UI)
 		if cookie, err := r.Cookie("api_token"); err == nil {
 			apiKey = cookie.Value
 		} else {
 			// Fall back to Authorization header (for API clients)
 			apiKey = r.Header.Get("Authorization")
 			if apiKey == "" {
-				s.sendError(w, http.StatusUnauthorized, "API key required")
+				s.sendError(w, http.StatusUnauthorized, "Authentication required")
 				return
 			}
 			// Remove "Bearer " prefix if present
@@ -663,6 +865,182 @@ func maskAPIKey(key string) string {
 		return "****"
 	}
 	return key[:4] + "****" + key[len(key)-4:]
+}
+
+// handleUsers lists all users
+func (s *ComplianceServer) handleUsers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	users, err := s.db.ListUsers()
+	if err != nil {
+		s.logger.Error("Failed to list users", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Failed to retrieve users")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(users)
+}
+
+// handleCreateUser creates a new user
+func (s *ComplianceServer) handleCreateUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Role     string `json:"role"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.sendError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	// Validate inputs
+	if request.Username == "" || request.Password == "" || request.Role == "" {
+		s.sendError(w, http.StatusBadRequest, "Username, password, and role are required")
+		return
+	}
+
+	// Validate role
+	validRoles := map[string]bool{"admin": true, "viewer": true, "auditor": true}
+	if !validRoles[request.Role] {
+		s.sendError(w, http.StatusBadRequest, "Invalid role. Must be: admin, viewer, or auditor")
+		return
+	}
+
+	// Check if username already exists
+	exists, err := s.db.UserExists(request.Username)
+	if err != nil {
+		s.logger.Error("Failed to check user existence", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Internal server error")
+		return
+	}
+	if exists {
+		s.sendError(w, http.StatusConflict, "Username already exists")
+		return
+	}
+
+	// Hash password
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+	if err != nil {
+		s.logger.Error("Failed to hash password", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Failed to create user")
+		return
+	}
+
+	// Create user
+	if err := s.db.CreateUser(request.Username, string(passwordHash), request.Role); err != nil {
+		s.logger.Error("Failed to create user", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Failed to create user")
+		return
+	}
+
+	s.logger.Info("User created", "username", request.Username, "role", request.Role)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"message": "User created successfully",
+	})
+}
+
+// handleDeleteUser deletes a user
+func (s *ComplianceServer) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Username string `json:"username"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.sendError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	if request.Username == "" {
+		s.sendError(w, http.StatusBadRequest, "Username is required")
+		return
+	}
+
+	// Delete user
+	if err := s.db.DeleteUser(request.Username); err != nil {
+		if err.Error() == "user not found" {
+			s.sendError(w, http.StatusNotFound, "User not found")
+			return
+		}
+		s.logger.Error("Failed to delete user", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Failed to delete user")
+		return
+	}
+
+	s.logger.Info("User deleted", "username", request.Username)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"message": "User deleted successfully",
+	})
+}
+
+// handleChangePassword changes a user's password
+func (s *ComplianceServer) handleChangePassword(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Username    string `json:"username"`
+		NewPassword string `json:"new_password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.sendError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	if request.Username == "" || request.NewPassword == "" {
+		s.sendError(w, http.StatusBadRequest, "Username and new password are required")
+		return
+	}
+
+	// Hash new password
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(request.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		s.logger.Error("Failed to hash password", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Failed to change password")
+		return
+	}
+
+	// Update password
+	if err := s.db.UpdateUserPassword(request.Username, string(passwordHash)); err != nil {
+		if err.Error() == "user not found" {
+			s.sendError(w, http.StatusNotFound, "User not found")
+			return
+		}
+		s.logger.Error("Failed to update password", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Failed to change password")
+		return
+	}
+
+	s.logger.Info("User password changed", "username", request.Username)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"message": "Password changed successfully",
+	})
 }
 
 // handleClientDetail handles client detail requests (API endpoint)
