@@ -1,0 +1,49 @@
+# Client Configuration for Server Testing
+
+# Client identification
+client:
+  id: "TEST-CLIENT-001"
+  hostname: "ULTRAWIDE"
+  enabled: true
+
+# Server configuration - CONNECTED TO LOCAL SERVER
+server:
+  url: "https://localhost:8443"
+  api_key: "test-api-key-12345"
+  tls_verify: false  # Ignore self-signed cert for testing
+  timeout: 30s
+  retry_on_startup: true
+
+# Report configuration
+reports:
+  config_path: "../../configs/reports"
+  output_path: "../../output/reports"
+  save_local: true
+  reports:
+    - "NIST_800_171_compliance.json"
+
+# Scheduling (disabled for one-time test)
+schedule:
+  enabled: false
+
+# Retry configuration
+retry:
+  max_attempts: 3
+  initial_backoff: 10s
+  max_backoff: 1m
+  backoff_multiplier: 2.0
+  retry_on_server_error: true
+
+# Local cache
+cache:
+  enabled: true
+  path: "../../cache/submissions"
+  max_size_mb: 100
+  max_age: 168h
+  auto_clean: true
+
+# Logging
+logging:
+  level: "info"
+  format: "text"
+  output_path: "stdout"
