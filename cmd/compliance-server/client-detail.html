@@ -415,7 +415,10 @@
         <div class="section" id="submissions-section" style="display: none;">
             <div class="section-header">
                 <h2 class="section-title">Submission History</h2>
-                <button class="btn btn-secondary" onclick="exportHistory()">Export History</button>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="exportHistory()">Export History</button>
+                    <button class="btn btn-secondary" onclick="clearHistory()" style="background: var(--danger); color: white; border-color: var(--danger);">Clear History</button>
+                </div>
             </div>
             <div id="submissions-table">
                 <div class="loading">Loading submissions...</div>
@@ -476,7 +479,6 @@
 
                 clientData = await response.json();
                 renderClientProfile();
-                renderStats();
                 renderSystemInfo();
             } catch (error) {
                 showError('Failed to load client data: ' + error.message);
@@ -495,9 +497,14 @@
                 }
 
                 submissionsData = await response.json();
+                renderStats(); // Render stats after submissions are loaded
                 renderSubmissions();
                 renderChart();
             } catch (error) {
+                submissionsData = []; // Initialize as empty array on error
+                renderStats(); // Still render stats with empty data
+                renderSubmissions(); // Show "no submissions" message
+                renderChart(); // Show empty chart message
                 showError('Failed to load submissions: ' + error.message);
             }
         }
@@ -539,7 +546,7 @@
 
             const score = clientData.compliance_score || 0;
             document.getElementById('stat-compliance-score').textContent = score.toFixed(1) + '%';
-            document.getElementById('stat-total-submissions').textContent = submissionsData.length;
+            document.getElementById('stat-total-submissions').textContent = submissionsData ? submissionsData.length : 0;
             document.getElementById('stat-last-submission').textContent =
                 clientData.last_seen ? formatDate(clientData.last_seen) : 'Never';
 
@@ -590,7 +597,7 @@
 
             const tableContainer = document.getElementById('submissions-table');
 
-            if (submissionsData.length === 0) {
+            if (!submissionsData || submissionsData.length === 0) {
                 tableContainer.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">No submissions found</p>';
                 return;
             }
@@ -640,6 +647,53 @@
             const section = document.getElementById('chart-section');
             section.style.display = 'block';
 
+            const ctx = document.getElementById('complianceChart').getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (complianceChart) {
+                complianceChart.destroy();
+            }
+
+            // Handle empty data
+            if (!submissionsData || submissionsData.length === 0) {
+                // Create empty chart with message
+                complianceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Compliance Score (%)',
+                            data: [],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
             // Prepare chart data (reverse to show oldest to newest)
             const reversedData = [...submissionsData].reverse();
             const labels = reversedData.map(s => formatDateShort(s.timestamp));
@@ -648,13 +702,6 @@
                     ? ((s.passed_checks / s.total_checks) * 100).toFixed(1)
                     : 0;
             });
-
-            const ctx = document.getElementById('complianceChart').getContext('2d');
-
-            // Destroy existing chart if it exists
-            if (complianceChart) {
-                complianceChart.destroy();
-            }
 
             complianceChart = new Chart(ctx, {
                 type: 'line',
@@ -696,7 +743,7 @@
         function exportHistory() {
             const exportData = {
                 client: clientData,
-                submissions: submissionsData,
+                submissions: submissionsData || [],
                 exported_at: new Date().toISOString()
             };
 
@@ -710,6 +757,44 @@
             link.click();
 
             URL.revokeObjectURL(url);
+        }
+
+        // Clear client history
+        async function clearHistory() {
+            const submissionCount = submissionsData ? submissionsData.length : 0;
+
+            if (submissionCount === 0) {
+                alert('There are no submissions to clear.');
+                return;
+            }
+
+            const confirmed = confirm(
+                `Are you sure you want to clear ALL submission history for client "${clientData.hostname}"?\n\n` +
+                `This will delete ${submissionCount} submission(s) and cannot be undone.`
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/clients/clear-history/${clientID}`, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to clear history');
+                }
+
+                const result = await response.json();
+                alert(`Success: ${result.message}`);
+
+                // Reload the page to show updated data
+                window.location.reload();
+            } catch (error) {
+                alert('Error clearing history: ' + error.message);
+            }
         }
 
         // View submission detail

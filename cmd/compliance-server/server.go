@@ -68,6 +68,9 @@ func (s *ComplianceServer) registerRoutes() {
 	// Submission endpoints
 	s.mux.HandleFunc("/api/v1/submissions/", s.authMiddleware(s.handleSubmissionDetail))
 
+	// Client management endpoints
+	s.mux.HandleFunc("/api/v1/clients/clear-history/", s.authMiddleware(s.handleClearClientHistory))
+
 	// Settings API endpoints
 	s.mux.HandleFunc("/api/v1/settings/config", s.authMiddleware(s.handleGetConfig))
 	s.mux.HandleFunc("/api/v1/settings/config/update", s.authMiddleware(s.handleUpdateConfig))
@@ -813,4 +816,46 @@ func (s *ComplianceServer) handleSubmissionDetailPage(w http.ResponseWriter, r *
 
 	w.Header().Set("Content-Type", "text/html")
 	w.Write(html)
+}
+
+// handleClearClientHistory clears all submission history for a client
+func (s *ComplianceServer) handleClearClientHistory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract client_id from path
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/clients/clear-history/")
+	clientID := strings.TrimSuffix(path, "/")
+
+	if clientID == "" {
+		s.sendError(w, http.StatusBadRequest, "Client ID required")
+		return
+	}
+
+	// Verify client exists
+	_, err := s.db.GetClient(clientID)
+	if err != nil {
+		s.logger.Error("Client not found", "error", err, "client_id", clientID)
+		s.sendError(w, http.StatusNotFound, "Client not found")
+		return
+	}
+
+	// Clear client history
+	deletedCount, err := s.db.ClearClientHistory(clientID)
+	if err != nil {
+		s.logger.Error("Failed to clear client history", "error", err, "client_id", clientID)
+		s.sendError(w, http.StatusInternalServerError, "Failed to clear history")
+		return
+	}
+
+	s.logger.Info("Client history cleared", "client_id", clientID, "deleted_count", deletedCount)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":        "success",
+		"message":       fmt.Sprintf("Cleared %d submissions for client %s", deletedCount, clientID),
+		"deleted_count": deletedCount,
+	})
 }
