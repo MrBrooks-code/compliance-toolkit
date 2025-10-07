@@ -28,6 +28,7 @@ auth:
 dashboard:
   enabled: true
   path: "/dashboard"    # URL path for dashboard
+  login_message: "This system is for authorized personel only."
 
 # Logging configuration
 logging:
