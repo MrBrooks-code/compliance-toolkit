@@ -98,11 +98,43 @@ func (d *Database) initSchema() error {
 		FOREIGN KEY (client_id) REFERENCES clients(client_id)
 	);
 
+	-- Policies table
+	CREATE TABLE IF NOT EXISTS policies (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		policy_id TEXT UNIQUE NOT NULL,
+		name TEXT NOT NULL,
+		description TEXT,
+		framework TEXT,  -- NIST, FIPS, CIS, etc.
+		version TEXT,
+		category TEXT,
+		author TEXT,
+		status TEXT DEFAULT 'active',  -- active, inactive, draft
+		policy_data TEXT NOT NULL,  -- JSON policy configuration
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+
+	-- Client policy assignments (for future use)
+	CREATE TABLE IF NOT EXISTS client_policies (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		client_id TEXT NOT NULL,
+		policy_id TEXT NOT NULL,
+		assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		assigned_by TEXT,
+		FOREIGN KEY (client_id) REFERENCES clients(client_id),
+		FOREIGN KEY (policy_id) REFERENCES policies(policy_id),
+		UNIQUE(client_id, policy_id)
+	);
+
 	-- Indexes for performance
 	CREATE INDEX IF NOT EXISTS idx_submissions_client_id ON submissions(client_id);
 	CREATE INDEX IF NOT EXISTS idx_submissions_timestamp ON submissions(timestamp);
 	CREATE INDEX IF NOT EXISTS idx_submissions_report_type ON submissions(report_type);
 	CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status);
+	CREATE INDEX IF NOT EXISTS idx_policies_framework ON policies(framework);
+	CREATE INDEX IF NOT EXISTS idx_policies_status ON policies(status);
+	CREATE INDEX IF NOT EXISTS idx_client_policies_client_id ON client_policies(client_id);
+	CREATE INDEX IF NOT EXISTS idx_client_policies_policy_id ON client_policies(policy_id);
 	`
 
 	if _, err := d.db.Exec(schema); err != nil {
@@ -602,4 +634,225 @@ func (d *Database) ClearClientHistory(clientID string) (int64, error) {
 
 	d.logger.Info("Cleared client history", "client_id", clientID, "submissions_deleted", rowsAffected)
 	return rowsAffected, nil
+}
+
+// Policy represents a compliance policy
+type Policy struct {
+	ID          int    `json:"id"`
+	PolicyID    string `json:"policy_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Framework   string `json:"framework"`
+	Version     string `json:"version"`
+	Category    string `json:"category"`
+	Author      string `json:"author"`
+	Status      string `json:"status"`
+	PolicyData  string `json:"policy_data"` // JSON
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+}
+
+// ListPolicies retrieves all policies
+func (d *Database) ListPolicies() ([]Policy, error) {
+	query := `
+		SELECT id, policy_id, name, description, framework, version, category, author, status,
+		       policy_data, created_at, updated_at
+		FROM policies
+		ORDER BY created_at DESC
+	`
+
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query policies: %w", err)
+	}
+	defer rows.Close()
+
+	var policies []Policy
+	for rows.Next() {
+		var p Policy
+		var description, framework, version, category, author sql.NullString
+
+		err := rows.Scan(
+			&p.ID,
+			&p.PolicyID,
+			&p.Name,
+			&description,
+			&framework,
+			&version,
+			&category,
+			&author,
+			&p.Status,
+			&p.PolicyData,
+			&p.CreatedAt,
+			&p.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan policy: %w", err)
+		}
+
+		// Handle NULL fields
+		if description.Valid {
+			p.Description = description.String
+		}
+		if framework.Valid {
+			p.Framework = framework.String
+		}
+		if version.Valid {
+			p.Version = version.String
+		}
+		if category.Valid {
+			p.Category = category.String
+		}
+		if author.Valid {
+			p.Author = author.String
+		}
+
+		policies = append(policies, p)
+	}
+
+	return policies, nil
+}
+
+// GetPolicy retrieves a specific policy by policy_id
+func (d *Database) GetPolicy(policyID string) (*Policy, error) {
+	query := `
+		SELECT id, policy_id, name, description, framework, version, category, author, status,
+		       policy_data, created_at, updated_at
+		FROM policies
+		WHERE policy_id = ?
+	`
+
+	var p Policy
+	var description, framework, version, category, author sql.NullString
+
+	err := d.db.QueryRow(query, policyID).Scan(
+		&p.ID,
+		&p.PolicyID,
+		&p.Name,
+		&description,
+		&framework,
+		&version,
+		&category,
+		&author,
+		&p.Status,
+		&p.PolicyData,
+		&p.CreatedAt,
+		&p.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("policy not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query policy: %w", err)
+	}
+
+	// Handle NULL fields
+	if description.Valid {
+		p.Description = description.String
+	}
+	if framework.Valid {
+		p.Framework = framework.String
+	}
+	if version.Valid {
+		p.Version = version.String
+	}
+	if category.Valid {
+		p.Category = category.String
+	}
+	if author.Valid {
+		p.Author = author.String
+	}
+
+	return &p, nil
+}
+
+// CreatePolicy creates a new policy
+func (d *Database) CreatePolicy(p *Policy) error {
+	query := `
+		INSERT INTO policies (
+			policy_id, name, description, framework, version, category, author, status, policy_data
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	_, err := d.db.Exec(
+		query,
+		p.PolicyID,
+		p.Name,
+		p.Description,
+		p.Framework,
+		p.Version,
+		p.Category,
+		p.Author,
+		p.Status,
+		p.PolicyData,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to create policy: %w", err)
+	}
+
+	d.logger.Info("Policy created", "policy_id", p.PolicyID, "name", p.Name)
+	return nil
+}
+
+// UpdatePolicy updates an existing policy
+func (d *Database) UpdatePolicy(policyID string, p *Policy) error {
+	query := `
+		UPDATE policies
+		SET name = ?, description = ?, framework = ?, version = ?, category = ?,
+		    author = ?, status = ?, policy_data = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE policy_id = ?
+	`
+
+	result, err := d.db.Exec(
+		query,
+		p.Name,
+		p.Description,
+		p.Framework,
+		p.Version,
+		p.Category,
+		p.Author,
+		p.Status,
+		p.PolicyData,
+		policyID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update policy: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("policy not found")
+	}
+
+	d.logger.Info("Policy updated", "policy_id", policyID)
+	return nil
+}
+
+// DeletePolicy deletes a policy
+func (d *Database) DeletePolicy(policyID string) error {
+	query := `DELETE FROM policies WHERE policy_id = ?`
+
+	result, err := d.db.Exec(query, policyID)
+	if err != nil {
+		return fmt.Errorf("failed to delete policy: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("policy not found")
+	}
+
+	d.logger.Info("Policy deleted", "policy_id", policyID)
+	return nil
 }

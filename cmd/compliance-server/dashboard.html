@@ -49,33 +49,59 @@
             padding: 20px;
         }
 
-        header {
+        .header {
             background: var(--bg-primary);
-            border-bottom: 2px solid var(--border);
-            padding: 20px 0;
-            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            height: 64px;
         }
 
-        h1 {
-            font-size: 28px;
-            font-weight: 700;
+        .logo {
+            font-size: 20px;
+            font-weight: 600;
             color: var(--primary);
         }
 
+        .nav {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav a:hover {
+            color: var(--primary);
+        }
+
+        .nav a.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
         .theme-toggle {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            padding: 8px 16px;
-            border-radius: 6px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
             cursor: pointer;
-            font-size: 14px;
-            color: var(--text-primary);
+            font-size: 20px;
+            padding: 8px;
         }
 
         .stats-grid {
@@ -281,14 +307,15 @@
     </style>
 </head>
 <body>
-    <header>
-        <div class="container">
-            <div class="header-content">
-                <h1>🛡️ Compliance Dashboard</h1>
-                <button class="theme-toggle" onclick="toggleTheme()">
-                    🌓 Toggle Theme
-                </button>
-            </div>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">⚙️ Compliance Toolkit</div>
+            <nav class="nav">
+                <a href="/dashboard" class="active">Dashboard</a>
+                <a href="/policies">Policies</a>
+                <a href="/settings">Settings</a>
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌓</button>
+            </nav>
         </div>
     </header>
 

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -59,6 +60,7 @@ func (s *ComplianceServer) registerRoutes() {
 	if s.config.Dashboard.Enabled {
 		s.mux.HandleFunc(s.config.Dashboard.Path, s.handleDashboard)
 		s.mux.HandleFunc("/settings", s.handleSettings)
+		s.mux.HandleFunc("/policies", s.handlePoliciesPage)
 		s.mux.HandleFunc("/client-detail", s.handleClientDetailPage)
 		s.mux.HandleFunc("/submission-detail", s.handleSubmissionDetailPage)
 		s.mux.HandleFunc("/api/v1/dashboard/summary", s.handleDashboardSummary)
@@ -77,6 +79,11 @@ func (s *ComplianceServer) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/settings/apikeys", s.authMiddleware(s.handleAPIKeys))
 	s.mux.HandleFunc("/api/v1/settings/apikeys/add", s.authMiddleware(s.handleAddAPIKey))
 	s.mux.HandleFunc("/api/v1/settings/apikeys/delete", s.authMiddleware(s.handleDeleteAPIKey))
+
+	// Policy API endpoints
+	s.mux.HandleFunc("/api/v1/policies/import", s.authMiddleware(s.handleImportPolicies))
+	s.mux.HandleFunc("/api/v1/policies/", s.authMiddleware(s.handlePolicyDetail))
+	s.mux.HandleFunc("/api/v1/policies", s.authMiddleware(s.handlePolicies))
 
 	// Root handler
 	s.mux.HandleFunc("/", s.handleRoot)
@@ -346,6 +353,19 @@ func (s *ComplianceServer) handleSettings(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		s.logger.Error("Failed to read settings.html", "error", err)
 		http.Error(w, "Settings not available", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(html)
+}
+
+func (s *ComplianceServer) handlePoliciesPage(w http.ResponseWriter, r *http.Request) {
+	// Read policies HTML file
+	html, err := os.ReadFile("policies.html")
+	if err != nil {
+		s.logger.Error("Failed to read policies.html", "error", err)
+		http.Error(w, "Policies page not available", http.StatusInternalServerError)
 		return
 	}
 
@@ -857,5 +877,262 @@ func (s *ComplianceServer) handleClearClientHistory(w http.ResponseWriter, r *ht
 		"status":        "success",
 		"message":       fmt.Sprintf("Cleared %d submissions for client %s", deletedCount, clientID),
 		"deleted_count": deletedCount,
+	})
+}
+
+// handlePolicies handles GET (list), POST (create) for /api/v1/policies
+func (s *ComplianceServer) handlePolicies(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		s.handleListPolicies(w, r)
+	case http.MethodPost:
+		s.handleCreatePolicy(w, r)
+	default:
+		s.sendError(w, http.StatusMethodNotAllowed, "Method not allowed")
+	}
+}
+
+// handlePolicyDetail handles GET (detail), PUT (update), DELETE for /api/v1/policies/{policy_id}
+func (s *ComplianceServer) handlePolicyDetail(w http.ResponseWriter, r *http.Request) {
+	// Handle /api/v1/policies endpoint (no trailing slash)
+	if r.URL.Path == "/api/v1/policies" {
+		s.handlePolicies(w, r)
+		return
+	}
+
+	// Extract policy_id from path
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/policies/")
+	policyID := strings.TrimSuffix(path, "/")
+
+	if policyID == "" {
+		s.sendError(w, http.StatusBadRequest, "Policy ID required")
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		s.handleGetPolicy(w, r, policyID)
+	case http.MethodPut:
+		s.handleUpdatePolicy(w, r, policyID)
+	case http.MethodDelete:
+		s.handleDeletePolicy(w, r, policyID)
+	default:
+		s.sendError(w, http.StatusMethodNotAllowed, "Method not allowed")
+	}
+}
+
+// handleListPolicies returns all policies
+func (s *ComplianceServer) handleListPolicies(w http.ResponseWriter, r *http.Request) {
+	policies, err := s.db.ListPolicies()
+	if err != nil {
+		s.logger.Error("Failed to list policies", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Failed to retrieve policies")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(policies)
+}
+
+// handleGetPolicy returns a specific policy
+func (s *ComplianceServer) handleGetPolicy(w http.ResponseWriter, r *http.Request, policyID string) {
+	policy, err := s.db.GetPolicy(policyID)
+	if err != nil {
+		s.logger.Error("Failed to get policy", "error", err, "policy_id", policyID)
+		if err.Error() == "policy not found" {
+			s.sendError(w, http.StatusNotFound, "Policy not found")
+		} else {
+			s.sendError(w, http.StatusInternalServerError, "Failed to retrieve policy")
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(policy)
+}
+
+// handleCreatePolicy creates a new policy
+func (s *ComplianceServer) handleCreatePolicy(w http.ResponseWriter, r *http.Request) {
+	var policy Policy
+	if err := json.NewDecoder(r.Body).Decode(&policy); err != nil {
+		s.sendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Validate required fields
+	if policy.PolicyID == "" || policy.Name == "" || policy.PolicyData == "" {
+		s.sendError(w, http.StatusBadRequest, "Missing required fields: policy_id, name, policy_data")
+		return
+	}
+
+	// Set default status if not provided
+	if policy.Status == "" {
+		policy.Status = "active"
+	}
+
+	if err := s.db.CreatePolicy(&policy); err != nil {
+		s.logger.Error("Failed to create policy", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Failed to create policy")
+		return
+	}
+
+	s.logger.Info("Policy created", "policy_id", policy.PolicyID)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":    "success",
+		"message":   "Policy created successfully",
+		"policy_id": policy.PolicyID,
+	})
+}
+
+// handleUpdatePolicy updates an existing policy
+func (s *ComplianceServer) handleUpdatePolicy(w http.ResponseWriter, r *http.Request, policyID string) {
+	var policy Policy
+	if err := json.NewDecoder(r.Body).Decode(&policy); err != nil {
+		s.sendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if err := s.db.UpdatePolicy(policyID, &policy); err != nil {
+		s.logger.Error("Failed to update policy", "error", err, "policy_id", policyID)
+		if err.Error() == "policy not found" {
+			s.sendError(w, http.StatusNotFound, "Policy not found")
+		} else {
+			s.sendError(w, http.StatusInternalServerError, "Failed to update policy")
+		}
+		return
+	}
+
+	s.logger.Info("Policy updated", "policy_id", policyID)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"message": "Policy updated successfully",
+	})
+}
+
+// handleDeletePolicy deletes a policy
+func (s *ComplianceServer) handleDeletePolicy(w http.ResponseWriter, r *http.Request, policyID string) {
+	if err := s.db.DeletePolicy(policyID); err != nil {
+		s.logger.Error("Failed to delete policy", "error", err, "policy_id", policyID)
+		if err.Error() == "policy not found" {
+			s.sendError(w, http.StatusNotFound, "Policy not found")
+		} else {
+			s.sendError(w, http.StatusInternalServerError, "Failed to delete policy")
+		}
+		return
+	}
+
+	s.logger.Info("Policy deleted", "policy_id", policyID)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"message": "Policy deleted successfully",
+	})
+}
+
+// handleImportPolicies imports policies from configs/reports directory
+func (s *ComplianceServer) handleImportPolicies(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		s.sendError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	// Look for report files in configs/reports directory
+	reportsDir := "../../configs/reports"
+	files, err := filepath.Glob(filepath.Join(reportsDir, "*.json"))
+	if err != nil {
+		s.logger.Error("Failed to list report files", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Failed to list report files")
+		return
+	}
+
+	imported := 0
+	skipped := 0
+	errors := []string{}
+
+	for _, file := range files {
+		// Read the report file
+		data, err := os.ReadFile(file)
+		if err != nil {
+			s.logger.Warn("Failed to read report file", "file", file, "error", err)
+			errors = append(errors, fmt.Sprintf("Failed to read %s: %v", filepath.Base(file), err))
+			continue
+		}
+
+		// Parse the report to extract metadata
+		var reportConfig struct {
+			Version  string `json:"version"`
+			Metadata struct {
+				ReportTitle   string `json:"report_title"`
+				ReportVersion string `json:"report_version"`
+				Author        string `json:"author"`
+				Description   string `json:"description"`
+				Category      string `json:"category"`
+				Compliance    string `json:"compliance"`
+			} `json:"metadata"`
+		}
+
+		if err := json.Unmarshal(data, &reportConfig); err != nil {
+			s.logger.Warn("Failed to parse report file", "file", file, "error", err)
+			errors = append(errors, fmt.Sprintf("Failed to parse %s: %v", filepath.Base(file), err))
+			continue
+		}
+
+		// Extract framework from compliance field (e.g., "NIST 800-171 Rev 2" -> "NIST")
+		framework := ""
+		if reportConfig.Metadata.Compliance != "" {
+			parts := strings.Split(reportConfig.Metadata.Compliance, " ")
+			if len(parts) > 0 {
+				framework = parts[0]
+			}
+		}
+
+		// Generate policy_id from filename
+		filename := filepath.Base(file)
+		policyID := strings.TrimSuffix(filename, filepath.Ext(filename))
+
+		// Check if policy already exists
+		existing, _ := s.db.GetPolicy(policyID)
+		if existing != nil {
+			s.logger.Info("Policy already exists, skipping", "policy_id", policyID)
+			skipped++
+			continue
+		}
+
+		// Create policy
+		policy := Policy{
+			PolicyID:    policyID,
+			Name:        reportConfig.Metadata.ReportTitle,
+			Description: reportConfig.Metadata.Description,
+			Framework:   framework,
+			Version:     reportConfig.Metadata.ReportVersion,
+			Category:    reportConfig.Metadata.Category,
+			Author:      reportConfig.Metadata.Author,
+			Status:      "active",
+			PolicyData:  string(data),
+		}
+
+		if err := s.db.CreatePolicy(&policy); err != nil {
+			s.logger.Error("Failed to import policy", "policy_id", policyID, "error", err)
+			errors = append(errors, fmt.Sprintf("Failed to import %s: %v", policyID, err))
+			continue
+		}
+
+		s.logger.Info("Policy imported", "policy_id", policyID, "name", policy.Name)
+		imported++
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":   "success",
+		"imported": imported,
+		"skipped":  skipped,
+		"errors":   errors,
+		"message":  fmt.Sprintf("Imported %d policies, skipped %d existing", imported, skipped),
 	})
 }
