@@ -50,14 +50,23 @@ func (s *ComplianceServer) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/compliance/submit", s.authMiddleware(s.handleSubmit))
 	s.mux.HandleFunc("/api/v1/clients/register", s.authMiddleware(s.handleRegister))
 	s.mux.HandleFunc("/api/v1/compliance/status/", s.authMiddleware(s.handleStatus))
+
+	// Client detail endpoints (must be before /api/v1/clients to avoid conflict)
+	s.mux.HandleFunc("/api/v1/clients/", s.authMiddleware(s.handleClientDetail))
 	s.mux.HandleFunc("/api/v1/clients", s.authMiddleware(s.handleListClients))
 
 	// Dashboard (if enabled)
 	if s.config.Dashboard.Enabled {
 		s.mux.HandleFunc(s.config.Dashboard.Path, s.handleDashboard)
 		s.mux.HandleFunc("/settings", s.handleSettings)
+		s.mux.HandleFunc("/client-detail", s.handleClientDetailPage)
+		s.mux.HandleFunc("/submission-detail", s.handleSubmissionDetailPage)
 		s.mux.HandleFunc("/api/v1/dashboard/summary", s.handleDashboardSummary)
+		s.mux.HandleFunc("/api/v1/auth/session", s.handleGetSession)
 	}
+
+	// Submission endpoints
+	s.mux.HandleFunc("/api/v1/submissions/", s.authMiddleware(s.handleSubmissionDetail))
 
 	// Settings API endpoints
 	s.mux.HandleFunc("/api/v1/settings/config", s.authMiddleware(s.handleGetConfig))
@@ -205,8 +214,8 @@ func (s *ComplianceServer) handleSubmit(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Update client last_seen
-	if err := s.db.UpdateClientLastSeen(submission.ClientID, submission.Hostname); err != nil {
+	// Update client last_seen and system info
+	if err := s.db.UpdateClientLastSeen(submission.ClientID, submission.Hostname, &submission.SystemInfo); err != nil {
 		s.logger.Warn("Failed to update client last_seen", "error", err)
 		// Non-fatal - continue
 	}
@@ -368,15 +377,21 @@ func (s *ComplianceServer) authMiddleware(next http.HandlerFunc) http.HandlerFun
 			return
 		}
 
-		// Get API key from header
-		apiKey := r.Header.Get("Authorization")
-		if apiKey == "" {
-			s.sendError(w, http.StatusUnauthorized, "API key required")
-			return
-		}
+		var apiKey string
 
-		// Remove "Bearer " prefix if present
-		apiKey = strings.TrimPrefix(apiKey, "Bearer ")
+		// Try to get API key from cookie first (for dashboard/web UI)
+		if cookie, err := r.Cookie("api_token"); err == nil {
+			apiKey = cookie.Value
+		} else {
+			// Fall back to Authorization header (for API clients)
+			apiKey = r.Header.Get("Authorization")
+			if apiKey == "" {
+				s.sendError(w, http.StatusUnauthorized, "API key required")
+				return
+			}
+			// Remove "Bearer " prefix if present
+			apiKey = strings.TrimPrefix(apiKey, "Bearer ")
+		}
 
 		// Validate API key
 		valid := false
@@ -625,4 +640,177 @@ func maskAPIKey(key string) string {
 		return "****"
 	}
 	return key[:4] + "****" + key[len(key)-4:]
+}
+
+// handleClientDetail handles client detail requests (API endpoint)
+func (s *ComplianceServer) handleClientDetail(w http.ResponseWriter, r *http.Request) {
+	// If path is exactly /api/v1/clients (no trailing slash), this is list endpoint
+	if r.URL.Path == "/api/v1/clients" {
+		s.handleListClients(w, r)
+		return
+	}
+
+	// Extract client_id from path
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/clients/")
+	parts := strings.Split(path, "/")
+
+	if len(parts) == 0 || parts[0] == "" {
+		s.sendError(w, http.StatusBadRequest, "Client ID required")
+		return
+	}
+
+	clientID := parts[0]
+
+	// Handle /api/v1/clients/{client_id}/submissions endpoint
+	if len(parts) > 1 && parts[1] == "submissions" {
+		s.handleClientSubmissions(w, r, clientID)
+		return
+	}
+
+	// Handle GET /api/v1/clients/{client_id} endpoint
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get client from database
+	client, err := s.db.GetClient(clientID)
+	if err != nil {
+		s.logger.Error("Failed to get client", "error", err, "client_id", clientID)
+		s.sendError(w, http.StatusNotFound, "Client not found")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(client)
+}
+
+// handleClientSubmissions handles client submission history requests
+func (s *ComplianceServer) handleClientSubmissions(w http.ResponseWriter, r *http.Request, clientID string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get submissions from database
+	submissions, err := s.db.GetClientSubmissions(clientID)
+	if err != nil {
+		s.logger.Error("Failed to get client submissions", "error", err, "client_id", clientID)
+		s.sendError(w, http.StatusInternalServerError, "Failed to retrieve submissions")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(submissions)
+}
+
+// handleClientDetailPage serves the client detail HTML page
+func (s *ComplianceServer) handleClientDetailPage(w http.ResponseWriter, r *http.Request) {
+	// Read client detail HTML file
+	html, err := os.ReadFile("client-detail.html")
+	if err != nil {
+		s.logger.Error("Failed to read client-detail.html", "error", err)
+		http.Error(w, "Client detail page not available", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(html)
+}
+
+// handleGetSession returns session info (used by dashboard to check if authenticated)
+func (s *ComplianceServer) handleGetSession(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check for cookie
+	cookie, err := r.Cookie("api_token")
+	if err != nil || cookie.Value == "" {
+		// No session cookie, return first API key for convenience (dashboard use only)
+		if len(s.config.Auth.APIKeys) > 0 {
+			// Set cookie with first API key
+			http.SetCookie(w, &http.Cookie{
+				Name:     "api_token",
+				Value:    s.config.Auth.APIKeys[0],
+				Path:     "/",
+				HttpOnly: true,
+				SameSite: http.SameSiteStrictMode,
+				MaxAge:   86400, // 24 hours
+			})
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"status":         "authenticated",
+				"authentication": "cookie",
+			})
+			return
+		}
+
+		s.sendError(w, http.StatusUnauthorized, "No authentication found")
+		return
+	}
+
+	// Validate existing cookie
+	valid := false
+	for _, key := range s.config.Auth.APIKeys {
+		if cookie.Value == key {
+			valid = true
+			break
+		}
+	}
+
+	if !valid {
+		s.sendError(w, http.StatusUnauthorized, "Invalid session")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":         "authenticated",
+		"authentication": "cookie",
+	})
+}
+
+// handleSubmissionDetail handles submission detail requests (API endpoint)
+func (s *ComplianceServer) handleSubmissionDetail(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract submission_id from path
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/submissions/")
+	submissionID := strings.TrimSuffix(path, "/")
+
+	if submissionID == "" {
+		s.sendError(w, http.StatusBadRequest, "Submission ID required")
+		return
+	}
+
+	// Get submission from database
+	submission, err := s.db.GetSubmission(submissionID)
+	if err != nil {
+		s.logger.Error("Failed to get submission", "error", err, "submission_id", submissionID)
+		s.sendError(w, http.StatusNotFound, "Submission not found")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(submission)
+}
+
+// handleSubmissionDetailPage serves the submission detail HTML page
+func (s *ComplianceServer) handleSubmissionDetailPage(w http.ResponseWriter, r *http.Request) {
+	// Read submission detail HTML file
+	html, err := os.ReadFile("submission-detail.html")
+	if err != nil {
+		s.logger.Error("Failed to read submission-detail.html", "error", err)
+		http.Error(w, "Submission detail page not available", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(html)
 }

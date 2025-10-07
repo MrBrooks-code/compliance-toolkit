@@ -5,9 +5,10 @@ server:
   host: "0.0.0.0"       # Bind to all interfaces
   port: 8443            # HTTPS port
   tls:
-    enabled: true
-    cert_file: "certs/server.crt"
-    key_file: "certs/server.key"
+    enabled: false
+    
+    #cert_file: "certs/server.crt"
+    #key_file: "certs/server.key"
 
 # Database configuration
 database:

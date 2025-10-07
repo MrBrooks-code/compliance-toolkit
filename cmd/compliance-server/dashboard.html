@@ -451,6 +451,7 @@
                             <th>Passed</th>
                             <th>Failed</th>
                             <th>Time</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -465,6 +466,12 @@
                                 <td style="color: var(--danger); font-weight: 600;">${sub.failed_checks}</td>
                                 <td class="timestamp">${formatRelativeTime(sub.timestamp)}<br>
                                     ${formatTimestamp(sub.timestamp)}
+                                </td>
+                                <td>
+                                    <a href="/submission-detail?submission_id=${encodeURIComponent(sub.submission_id)}"
+                                       style="color: var(--primary); text-decoration: none; font-weight: 500;">
+                                        View Details →
+                                    </a>
                                 </td>
                             </tr>
                         `).join('')}
@@ -507,6 +514,7 @@
                                 <th>Status</th>
                                 <th>Compliance</th>
                                 <th>Last Seen</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -527,6 +535,12 @@
                                     </span></td>
                                     <td class="timestamp">${formatRelativeTime(client.last_seen)}<br>
                                         ${formatTimestamp(client.last_seen)}
+                                    </td>
+                                    <td>
+                                        <a href="/client-detail?client_id=${encodeURIComponent(client.client_id)}"
+                                           style="color: var(--primary); text-decoration: none; font-weight: 500;">
+                                            View Details →
+                                        </a>
                                     </td>
                                 </tr>
                             `).join('')}

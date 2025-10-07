@@ -256,17 +256,36 @@ func (d *Database) RegisterClient(registration *api.ClientRegistration) error {
 	return nil
 }
 
-// UpdateClientLastSeen updates the last_seen timestamp for a client
-func (d *Database) UpdateClientLastSeen(clientID, hostname string) error {
+// UpdateClientLastSeen updates the last_seen timestamp and system info for a client
+func (d *Database) UpdateClientLastSeen(clientID, hostname string, systemInfo *api.SystemInfo) error {
 	query := `
-		INSERT INTO clients (client_id, hostname, first_seen, last_seen)
-		VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		INSERT INTO clients (
+			client_id, hostname, os_version, build_number, architecture,
+			domain, ip_address, mac_address, first_seen, last_seen
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 		ON CONFLICT(client_id) DO UPDATE SET
 			hostname = excluded.hostname,
+			os_version = excluded.os_version,
+			build_number = excluded.build_number,
+			architecture = excluded.architecture,
+			domain = excluded.domain,
+			ip_address = excluded.ip_address,
+			mac_address = excluded.mac_address,
 			last_seen = CURRENT_TIMESTAMP
 	`
 
-	_, err := d.db.Exec(query, clientID, hostname)
+	var osVersion, buildNumber, architecture, domain, ipAddress, macAddress string
+	if systemInfo != nil {
+		osVersion = systemInfo.OSVersion
+		buildNumber = systemInfo.BuildNumber
+		architecture = systemInfo.Architecture
+		domain = systemInfo.Domain
+		ipAddress = systemInfo.IPAddress
+		macAddress = systemInfo.MacAddress
+	}
+
+	_, err := d.db.Exec(query, clientID, hostname, osVersion, buildNumber, architecture, domain, ipAddress, macAddress)
 	if err != nil {
 		return fmt.Errorf("failed to update client last_seen: %w", err)
 	}
@@ -455,4 +474,114 @@ func (d *Database) GetDashboardSummary() (*api.DashboardSummary, error) {
 	}
 
 	return summary, nil
+}
+
+// GetClient retrieves detailed information for a specific client
+func (d *Database) GetClient(clientID string) (*api.ClientInfo, error) {
+	query := `
+		SELECT
+			c.id, c.client_id, c.hostname, c.first_seen, c.last_seen, c.status,
+			c.os_version, c.build_number, c.architecture, c.domain, c.ip_address, c.mac_address,
+			(SELECT submission_id FROM submissions WHERE client_id = c.client_id ORDER BY timestamp DESC LIMIT 1) as last_submission,
+			(SELECT COUNT(*) FROM submissions WHERE client_id = c.client_id AND overall_status = 'compliant') * 100.0 /
+			NULLIF((SELECT COUNT(*) FROM submissions WHERE client_id = c.client_id), 0) as compliance_score
+		FROM clients c
+		WHERE c.client_id = ?
+	`
+
+	var client api.ClientInfo
+	var lastSubmission sql.NullString
+	var complianceScore sql.NullFloat64
+	var osVersion, buildNumber, architecture, domain, ipAddress, macAddress sql.NullString
+
+	err := d.db.QueryRow(query, clientID).Scan(
+		&client.ID,
+		&client.ClientID,
+		&client.Hostname,
+		&client.FirstSeen,
+		&client.LastSeen,
+		&client.Status,
+		&osVersion,
+		&buildNumber,
+		&architecture,
+		&domain,
+		&ipAddress,
+		&macAddress,
+		&lastSubmission,
+		&complianceScore,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("client not found")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query client: %w", err)
+	}
+
+	// Populate system info from nullable fields
+	if osVersion.Valid {
+		client.SystemInfo.OSVersion = osVersion.String
+	}
+	if buildNumber.Valid {
+		client.SystemInfo.BuildNumber = buildNumber.String
+	}
+	if architecture.Valid {
+		client.SystemInfo.Architecture = architecture.String
+	}
+	if domain.Valid {
+		client.SystemInfo.Domain = domain.String
+	}
+	if ipAddress.Valid {
+		client.SystemInfo.IPAddress = ipAddress.String
+	}
+	if macAddress.Valid {
+		client.SystemInfo.MacAddress = macAddress.String
+	}
+	if lastSubmission.Valid {
+		client.LastSubmission = lastSubmission.String
+	}
+	if complianceScore.Valid {
+		client.ComplianceScore = complianceScore.Float64
+	}
+
+	return &client, nil
+}
+
+// GetClientSubmissions retrieves all submissions for a specific client
+func (d *Database) GetClientSubmissions(clientID string) ([]api.SubmissionSummary, error) {
+	query := `
+		SELECT submission_id, client_id, hostname, timestamp, report_type,
+		       overall_status, total_checks, passed_checks, failed_checks
+		FROM submissions
+		WHERE client_id = ?
+		ORDER BY timestamp DESC
+	`
+
+	rows, err := d.db.Query(query, clientID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query client submissions: %w", err)
+	}
+	defer rows.Close()
+
+	var submissions []api.SubmissionSummary
+	for rows.Next() {
+		var sub api.SubmissionSummary
+		err := rows.Scan(
+			&sub.SubmissionID,
+			&sub.ClientID,
+			&sub.Hostname,
+			&sub.Timestamp,
+			&sub.ReportType,
+			&sub.OverallStatus,
+			&sub.TotalChecks,
+			&sub.PassedChecks,
+			&sub.FailedChecks,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan submission: %w", err)
+		}
+		submissions = append(submissions, sub)
+	}
+
+	return submissions, nil
 }

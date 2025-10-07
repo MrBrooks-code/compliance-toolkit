@@ -1,0 +1,51 @@
+# Compliance Toolkit Client Configuration
+
+# Client identification
+client:
+  id: ""                    # Auto-generated if empty
+  hostname: ""              # Auto-detected if empty
+  enabled: true
+
+# Server configuration (leave url empty for standalone mode)
+server:
+  url: ""                   # e.g., "https://compliance.company.com:8443"
+  api_key: ""               # API key for authentication
+  tls_verify: true          # Verify TLS certificates
+  timeout: 30s              # Request timeout
+  retry_on_startup: true    # Retry cached submissions on startup
+
+# Report configuration
+reports:
+  config_path: "configs/reports"
+  output_path: "output/reports"
+  save_local: true          # Save HTML reports locally
+  reports:
+    - "NIST_800_171_compliance.json"
+    # - "FIPS_140_2_compliance.json"
+
+# Scheduling (requires Windows Service or Task Scheduler)
+schedule:
+  enabled: false
+  cron: "0 2 * * *"         # Daily at 2 AM (cron syntax)
+
+# Retry configuration
+retry:
+  max_attempts: 3
+  initial_backoff: 30s
+  max_backoff: 5m
+  backoff_multiplier: 2.0
+  retry_on_server_error: true
+
+# Local cache for offline operation
+cache:
+  enabled: true
+  path: "cache/submissions"
+  max_size_mb: 100
+  max_age: 168h             # 7 days
+  auto_clean: true
+
+# Logging configuration
+logging:
+  level: "info"             # debug, info, warn, error
+  format: "text"            # text, json
+  output_path: "stdout"     # stdout, stderr, or file path
