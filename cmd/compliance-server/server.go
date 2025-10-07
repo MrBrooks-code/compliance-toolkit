@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -120,15 +122,19 @@ func (s *ComplianceServer) registerRoutes() {
 	// Settings API endpoints
 	s.mux.HandleFunc("/api/v1/settings/config", s.authMiddleware(s.handleGetConfig))
 	s.mux.HandleFunc("/api/v1/settings/config/update", s.authMiddleware(s.handleUpdateConfig))
-	s.mux.HandleFunc("/api/v1/settings/apikeys", s.authMiddleware(s.handleAPIKeys))
-	s.mux.HandleFunc("/api/v1/settings/apikeys/add", s.authMiddleware(s.handleAddAPIKey))
-	s.mux.HandleFunc("/api/v1/settings/apikeys/delete", s.authMiddleware(s.handleDeleteAPIKey))
 
 	// User management API endpoints
 	s.mux.HandleFunc("/api/v1/users", s.authMiddleware(s.handleUsers))
 	s.mux.HandleFunc("/api/v1/users/create", s.authMiddleware(s.handleCreateUser))
 	s.mux.HandleFunc("/api/v1/users/delete", s.authMiddleware(s.handleDeleteUser))
 	s.mux.HandleFunc("/api/v1/users/change-password", s.authMiddleware(s.handleChangePassword))
+
+	// API Key management endpoints (database-backed)
+	// Register more specific routes first to avoid conflicts
+	s.mux.HandleFunc("/api/v1/apikeys/generate", s.authMiddleware(s.handleGenerateAPIKey))
+	s.mux.HandleFunc("/api/v1/apikeys/delete", s.authMiddleware(s.handleDeleteAPIKeyDB))
+	s.mux.HandleFunc("/api/v1/apikeys/toggle", s.authMiddleware(s.handleToggleAPIKey))
+	s.mux.HandleFunc("/api/v1/apikeys", s.authMiddleware(s.handleListAPIKeys))
 
 	// Policy API endpoints
 	s.mux.HandleFunc("/api/v1/policies/import", s.authMiddleware(s.handleImportPolicies))
@@ -623,13 +629,7 @@ func (s *ComplianceServer) authMiddleware(next http.HandlerFunc) http.HandlerFun
 		}
 
 		// Validate API key
-		valid := false
-		for _, key := range s.config.Auth.APIKeys {
-			if apiKey == key {
-				valid = true
-				break
-			}
-		}
+		valid := s.validateAPIKey(apiKey)
 
 		if !valid {
 			s.logger.Warn("Invalid API key", "remote_addr", r.RemoteAddr)
@@ -639,6 +639,49 @@ func (s *ComplianceServer) authMiddleware(next http.HandlerFunc) http.HandlerFun
 
 		next(w, r)
 	}
+}
+
+// validateAPIKey checks if an API key is valid (checks database first, then config fallback)
+func (s *ComplianceServer) validateAPIKey(apiKey string) bool {
+	// First, check database for active API keys
+	hashes, err := s.db.ListActiveAPIKeyHashes()
+	if err != nil {
+		s.logger.Error("Failed to list active API key hashes", "error", err)
+		// Continue to config fallback if database fails
+	} else {
+		// Check against database hashes
+		for _, hash := range hashes {
+			if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(apiKey)); err == nil {
+				// Update last_used timestamp asynchronously
+				go func(keyHash string) {
+					if err := s.db.UpdateAPIKeyLastUsed(keyHash); err != nil {
+						s.logger.Warn("Failed to update API key last used", "error", err)
+					}
+				}(hash)
+				return true
+			}
+		}
+	}
+
+	// Fall back to config-based keys for backwards compatibility
+	// If using hashed keys in config, check against config hashes
+	if s.config.Auth.UseHashedKeys {
+		for _, hash := range s.config.Auth.APIKeyHashes {
+			if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(apiKey)); err == nil {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Fall back to plain text comparison in config (legacy)
+	for _, key := range s.config.Auth.APIKeys {
+		if apiKey == key {
+			return true
+		}
+	}
+
+	return false
 }
 
 // loggingMiddleware logs all HTTP requests
@@ -1557,5 +1600,169 @@ func (s *ComplianceServer) handleImportPolicies(w http.ResponseWriter, r *http.R
 		"skipped":  skipped,
 		"errors":   errors,
 		"message":  fmt.Sprintf("Imported %d policies, skipped %d existing", imported, skipped),
+	})
+}
+
+// generateSecureAPIKey generates a cryptographically secure random API key
+func generateSecureAPIKey() (string, error) {
+	// Generate 32 random bytes (256 bits)
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", fmt.Errorf("failed to generate random bytes: %w", err)
+	}
+
+	// Encode to base64 URL-safe format (43 characters)
+	key := base64.URLEncoding.EncodeToString(bytes)
+	return key, nil
+}
+
+// handleListAPIKeys lists all API keys from database
+func (s *ComplianceServer) handleListAPIKeys(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	keys, err := s.db.ListAPIKeys()
+	if err != nil {
+		s.logger.Error("Failed to list API keys", "error", err)
+		http.Error(w, "Failed to list API keys", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(keys)
+}
+
+// handleGenerateAPIKey generates a new API key
+func (s *ComplianceServer) handleGenerateAPIKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Name      string  `json:"name"`
+		ExpiresAt *string `json:"expires_at,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Name == "" {
+		http.Error(w, "Name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get current user from session (if logged in)
+	createdBy := "system"
+	if sessionCookie, err := r.Cookie("session_user"); err == nil {
+		createdBy = sessionCookie.Value
+	}
+
+	// Generate secure random API key
+	apiKey, err := generateSecureAPIKey()
+	if err != nil {
+		s.logger.Error("Failed to generate API key", "error", err)
+		http.Error(w, "Failed to generate API key", http.StatusInternalServerError)
+		return
+	}
+
+	// Hash the key
+	keyHash, err := bcrypt.GenerateFromPassword([]byte(apiKey), bcrypt.DefaultCost)
+	if err != nil {
+		s.logger.Error("Failed to hash API key", "error", err)
+		http.Error(w, "Failed to hash API key", http.StatusInternalServerError)
+		return
+	}
+
+	// Store first 8 characters as prefix for display
+	keyPrefix := apiKey[:8] + "..."
+
+	// Save to database
+	if err := s.db.CreateAPIKey(req.Name, string(keyHash), keyPrefix, createdBy, req.ExpiresAt); err != nil {
+		s.logger.Error("Failed to save API key", "error", err)
+		http.Error(w, "Failed to save API key", http.StatusInternalServerError)
+		return
+	}
+
+	s.logger.Info("API key generated", "name", req.Name, "created_by", createdBy)
+
+	// Return the full key ONLY once (never stored)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "success",
+		"message": "API key created successfully",
+		"api_key": apiKey, // Only time this is shown!
+		"prefix":  keyPrefix,
+		"name":    req.Name,
+	})
+}
+
+// handleDeleteAPIKeyDB deletes an API key from database
+func (s *ComplianceServer) handleDeleteAPIKeyDB(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		ID int `json:"id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := s.db.DeleteAPIKey(req.ID); err != nil {
+		s.logger.Error("Failed to delete API key", "id", req.ID, "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"message": "API key deleted successfully",
+	})
+}
+
+// handleToggleAPIKey toggles an API key's active status
+func (s *ComplianceServer) handleToggleAPIKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		ID     int  `json:"id"`
+		Active bool `json:"active"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	var err error
+	if req.Active {
+		err = s.db.ActivateAPIKey(req.ID)
+	} else {
+		err = s.db.DeactivateAPIKey(req.ID)
+	}
+
+	if err != nil {
+		s.logger.Error("Failed to toggle API key", "id", req.ID, "active", req.Active, "error", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"message": fmt.Sprintf("API key %s successfully", map[bool]string{true: "activated", false: "deactivated"}[req.Active]),
 	})
 }
