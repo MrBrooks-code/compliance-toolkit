@@ -496,6 +496,32 @@
             </div>
         </div>
 
+        <!-- Login Message -->
+        <div class="section">
+            <div class="section-title">💬 Login Message</div>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Customize the message displayed on the login page.
+            </p>
+
+            <div class="setting-row">
+                <div class="setting-label">
+                    <h3>Login Message</h3>
+                    <p>Message shown to users on the login page</p>
+                </div>
+                <div class="setting-value">
+                    <input type="text" id="login-message-input" placeholder="Enter login message" style="width: 100%; max-width: 400px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary);">
+                </div>
+            </div>
+
+            <div style="margin-top: 16px;">
+                <button class="btn-success" onclick="updateLoginMessage()">💾 Save Login Message</button>
+            </div>
+
+            <div style="margin-top: 20px; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                <strong>💡 Tip:</strong> Use this to welcome users or display important notices (e.g., "Scheduled maintenance tonight at 10 PM").
+            </div>
+        </div>
+
         <!-- API Keys Management -->
         <div class="section">
             <div class="section-title">🔑 API Keys</div>
@@ -851,6 +877,44 @@
             }
         }
 
+        // Login message management
+        async function loadLoginMessage() {
+            try {
+                const response = await fetch('/api/v1/config/login-message');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('login-message-input').value = data.message || '';
+                }
+            } catch (error) {
+                console.error('Failed to load login message:', error);
+            }
+        }
+
+        async function updateLoginMessage() {
+            const message = document.getElementById('login-message-input').value;
+
+            try {
+                const response = await fetch('/api/v1/config/login-message/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ message })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to update login message');
+                }
+
+                showAlert('Login message updated successfully! (Runtime only - update server.yaml for persistence)', 'success');
+            } catch (error) {
+                console.error('Failed to update login message:', error);
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
         // API Key management - Load from server
         async function loadApiKeys() {
             try {
@@ -1117,6 +1181,7 @@
 
         // Load data on page load
         loadServerInfo();
+        loadLoginMessage();
         loadApiKeys();
         loadClients();
         loadUsers();

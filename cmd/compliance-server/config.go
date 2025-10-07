@@ -47,8 +47,9 @@ type AuthSettings struct {
 
 // DashboardSettings contains web dashboard configuration
 type DashboardSettings struct {
-	Enabled bool   `mapstructure:"enabled"`
-	Path    string `mapstructure:"path"` // URL path for dashboard
+	Enabled      bool   `mapstructure:"enabled"`
+	Path         string `mapstructure:"path"`          // URL path for dashboard
+	LoginMessage string `mapstructure:"login_message"` // Message displayed on login page
 }
 
 // LoggingSettings contains logging configuration
@@ -110,6 +111,7 @@ func setConfigDefaults(v *viper.Viper) {
 	// Dashboard defaults
 	v.SetDefault("dashboard.enabled", true)
 	v.SetDefault("dashboard.path", "/dashboard")
+	v.SetDefault("dashboard.login_message", "Welcome to Compliance Toolkit")
 
 	// Logging defaults
 	v.SetDefault("logging.level", "info")

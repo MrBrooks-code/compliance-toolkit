@@ -97,6 +97,10 @@ func (s *ComplianceServer) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/auth/logout", s.handleLogout)
 	s.mux.HandleFunc("/api/v1/auth/session", s.handleGetSession)
 
+	// Config endpoints (public for login message)
+	s.mux.HandleFunc("/api/v1/config/login-message", s.handleGetLoginMessage)
+	s.mux.HandleFunc("/api/v1/config/login-message/update", s.authMiddleware(s.handleUpdateLoginMessage))
+
 	// Dashboard (if enabled)
 	if s.config.Dashboard.Enabled {
 		s.mux.HandleFunc(s.config.Dashboard.Path, s.requireAuth(s.handleDashboard))
@@ -1040,6 +1044,47 @@ func (s *ComplianceServer) handleChangePassword(w http.ResponseWriter, r *http.R
 	json.NewEncoder(w).Encode(map[string]string{
 		"status":  "success",
 		"message": "Password changed successfully",
+	})
+}
+
+// handleGetLoginMessage returns the configured login message (public endpoint)
+func (s *ComplianceServer) handleGetLoginMessage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": s.config.Dashboard.LoginMessage,
+	})
+}
+
+// handleUpdateLoginMessage updates the login message
+func (s *ComplianceServer) handleUpdateLoginMessage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Message string `json:"message"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		s.sendError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	// Update the login message in config (runtime only)
+	s.config.Dashboard.LoginMessage = request.Message
+
+	s.logger.Info("Login message updated", "message", request.Message)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "success",
+		"message": "Login message updated successfully",
 	})
 }
 
