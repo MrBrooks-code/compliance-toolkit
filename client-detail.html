@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Details - Compliance Toolkit Server</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --success: #059669;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --info: #0284c7;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border: #334155;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --danger: #f87171;
+            --warning: #fbbf24;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 64px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .nav {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav a:hover {
+            color: var(--primary);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 8px;
+        }
+
+        .logout-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .breadcrumb a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .client-header {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .client-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .client-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .meta-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .meta-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.active {
+            background: #dcfce7;
+            color: var(--success);
+        }
+
+        .badge.inactive {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .badge.compliant {
+            background: #dcfce7;
+            color: var(--success);
+        }
+
+        .badge.non-compliant {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .badge.partial {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+
+        [data-theme="dark"] .badge.active {
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        [data-theme="dark"] .badge.inactive {
+            background: rgba(248, 113, 113, 0.2);
+        }
+
+        [data-theme="dark"] .badge.compliant {
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        [data-theme="dark"] .badge.non-compliant {
+            background: rgba(248, 113, 113, 0.2);
+        }
+
+        [data-theme="dark"] .badge.partial {
+            background: rgba(251, 191, 36, 0.2);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .section {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            background: #fee2e2;
+            color: var(--danger);
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        [data-theme="dark"] .error {
+            background: rgba(248, 113, 113, 0.2);
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .action-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        .system-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">⚙️ Compliance Toolkit</div>
+            <nav class="nav">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/policies">Policies</a>
+                <a href="/settings">Settings</a>
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌓</button>
+                <button class="logout-btn" onclick="logout()" title="Logout">Logout</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="/dashboard">Dashboard</a> / <span id="breadcrumb-client">Client</span>
+        </div>
+
+        <div id="error-message" style="display: none;" class="error"></div>
+
+        <!-- Client Profile Section -->
+        <div class="client-header" id="client-profile">
+            <div class="loading">Loading client information...</div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-grid" id="client-stats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-label">Compliance Score</div>
+                <div class="stat-value" id="stat-compliance-score">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Submissions</div>
+                <div class="stat-value" id="stat-total-submissions">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Last Submission</div>
+                <div class="stat-value timestamp" id="stat-last-submission" style="font-size: 16px;">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Status</div>
+                <div class="stat-value" id="stat-status" style="font-size: 18px;">-</div>
+            </div>
+        </div>
+
+        <!-- Compliance Trend Chart -->
+        <div class="section" id="chart-section" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">Compliance Trend</h2>
+            </div>
+            <div class="chart-container">
+                <canvas id="complianceChart"></canvas>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="section" id="system-info-section" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">System Information</h2>
+            </div>
+            <div class="system-info-grid" id="system-info">
+                <div class="loading">Loading...</div>
+            </div>
+        </div>
+
+        <!-- Submission History -->
+        <div class="section" id="submissions-section" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">Submission History</h2>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" onclick="exportHistory()">Export History</button>
+                    <button class="btn btn-secondary" onclick="clearHistory()" style="background: var(--danger); color: white; border-color: var(--danger);">Clear History</button>
+                </div>
+            </div>
+            <div id="submissions-table">
+                <div class="loading">Loading submissions...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let clientID = null;
+        let clientData = null;
+        let submissionsData = [];
+        let complianceChart = null;
+
+        // Get client ID from URL parameter
+        function getClientIDFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('client_id');
+        }
+
+        // Initialize page
+        async function init() {
+            clientID = getClientIDFromURL();
+
+            if (!clientID) {
+                showError('No client ID specified');
+                return;
+            }
+
+            // Initialize session first (sets auth cookie)
+            await initSession();
+
+            // Then load data
+            await loadClientData();
+            await loadSubmissions();
+        }
+
+        // Initialize session (get auth cookie)
+        async function initSession() {
+            try {
+                await fetch('/api/v1/auth/session', {
+                    credentials: 'same-origin' // Include cookies
+                });
+            } catch (error) {
+                console.warn('Session init failed:', error);
+            }
+        }
+
+        // Load client data
+        async function loadClientData() {
+            try {
+                const response = await fetch(`/api/v1/clients/${clientID}`, {
+                    credentials: 'same-origin' // Include cookies for auth
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load client data');
+                }
+
+                clientData = await response.json();
+                renderClientProfile();
+                renderSystemInfo();
+            } catch (error) {
+                showError('Failed to load client data: ' + error.message);
+            }
+        }
+
+        // Load submissions
+        async function loadSubmissions() {
+            try {
+                const response = await fetch(`/api/v1/clients/${clientID}/submissions`, {
+                    credentials: 'same-origin' // Include cookies for auth
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load submissions');
+                }
+
+                submissionsData = await response.json();
+                renderStats(); // Render stats after submissions are loaded
+                renderSubmissions();
+                renderChart();
+            } catch (error) {
+                submissionsData = []; // Initialize as empty array on error
+                renderStats(); // Still render stats with empty data
+                renderSubmissions(); // Show "no submissions" message
+                renderChart(); // Show empty chart message
+                showError('Failed to load submissions: ' + error.message);
+            }
+        }
+
+        // Render client profile
+        function renderClientProfile() {
+            const profile = document.getElementById('client-profile');
+            document.getElementById('breadcrumb-client').textContent = clientData.hostname;
+
+            profile.innerHTML = `
+                <div class="client-name">${clientData.hostname}</div>
+                <div style="margin-bottom: 16px;">
+                    <span class="badge ${clientData.status}">${clientData.status}</span>
+                </div>
+                <div class="client-meta">
+                    <div class="meta-item">
+                        <div class="meta-label">Client ID</div>
+                        <div class="meta-value">${clientData.client_id}</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">First Seen</div>
+                        <div class="meta-value">${formatDate(clientData.first_seen)}</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">Last Seen</div>
+                        <div class="meta-value">${formatDate(clientData.last_seen)}</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">Compliance Score</div>
+                        <div class="meta-value">${clientData.compliance_score ? clientData.compliance_score.toFixed(1) + '%' : 'N/A'}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render stats
+        function renderStats() {
+            document.getElementById('client-stats').style.display = 'grid';
+
+            const score = clientData.compliance_score || 0;
+            document.getElementById('stat-compliance-score').textContent = score.toFixed(1) + '%';
+            document.getElementById('stat-total-submissions').textContent = submissionsData ? submissionsData.length : 0;
+            document.getElementById('stat-last-submission').textContent =
+                clientData.last_seen ? formatDate(clientData.last_seen) : 'Never';
+
+            const statusBadge = `<span class="badge ${clientData.status}">${clientData.status}</span>`;
+            document.getElementById('stat-status').innerHTML = statusBadge;
+        }
+
+        // Render system info
+        function renderSystemInfo() {
+            const section = document.getElementById('system-info-section');
+            section.style.display = 'block';
+
+            const info = clientData.system_info || {};
+            const systemInfoHTML = `
+                <div class="meta-item">
+                    <div class="meta-label">OS Version</div>
+                    <div class="meta-value">${info.os_version || 'N/A'}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Build Number</div>
+                    <div class="meta-value">${info.build_number || 'N/A'}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Architecture</div>
+                    <div class="meta-value">${info.architecture || 'N/A'}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Domain</div>
+                    <div class="meta-value">${info.domain || 'N/A'}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">IP Address</div>
+                    <div class="meta-value">${info.ip_address || 'N/A'}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">MAC Address</div>
+                    <div class="meta-value">${info.mac_address || 'N/A'}</div>
+                </div>
+            `;
+
+            document.getElementById('system-info').innerHTML = systemInfoHTML;
+        }
+
+        // Render submissions table
+        function renderSubmissions() {
+            const section = document.getElementById('submissions-section');
+            section.style.display = 'block';
+
+            const tableContainer = document.getElementById('submissions-table');
+
+            if (!submissionsData || submissionsData.length === 0) {
+                tableContainer.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--text-secondary);">No submissions found</p>';
+                return;
+            }
+
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Report Type</th>
+                            <th>Status</th>
+                            <th>Passed</th>
+                            <th>Failed</th>
+                            <th>Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            submissionsData.forEach(sub => {
+                const score = sub.total_checks > 0
+                    ? ((sub.passed_checks / sub.total_checks) * 100).toFixed(1)
+                    : '0.0';
+
+                tableHTML += `
+                    <tr>
+                        <td class="timestamp">${formatDate(sub.timestamp)}</td>
+                        <td>${sub.report_type}</td>
+                        <td><span class="badge ${sub.overall_status}">${sub.overall_status}</span></td>
+                        <td>${sub.passed_checks}</td>
+                        <td>${sub.failed_checks}</td>
+                        <td>${score}%</td>
+                        <td>
+                            <button class="btn btn-secondary action-btn" onclick="viewSubmission('${sub.submission_id}')">View</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table>';
+            tableContainer.innerHTML = tableHTML;
+        }
+
+        // Render compliance trend chart
+        function renderChart() {
+            const section = document.getElementById('chart-section');
+            section.style.display = 'block';
+
+            const ctx = document.getElementById('complianceChart').getContext('2d');
+
+            // Destroy existing chart if it exists
+            if (complianceChart) {
+                complianceChart.destroy();
+            }
+
+            // Handle empty data
+            if (!submissionsData || submissionsData.length === 0) {
+                // Create empty chart with message
+                complianceChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Compliance Score (%)',
+                            data: [],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            // Prepare chart data (reverse to show oldest to newest)
+            const reversedData = [...submissionsData].reverse();
+            const labels = reversedData.map(s => formatDateShort(s.timestamp));
+            const scores = reversedData.map(s => {
+                return s.total_checks > 0
+                    ? ((s.passed_checks / s.total_checks) * 100).toFixed(1)
+                    : 0;
+            });
+
+            complianceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Compliance Score (%)',
+                        data: scores,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Export client history
+        function exportHistory() {
+            const exportData = {
+                client: clientData,
+                submissions: submissionsData || [],
+                exported_at: new Date().toISOString()
+            };
+
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `client_${clientID}_history_${Date.now()}.json`;
+            link.click();
+
+            URL.revokeObjectURL(url);
+        }
+
+        // Clear client history
+        async function clearHistory() {
+            const submissionCount = submissionsData ? submissionsData.length : 0;
+
+            if (submissionCount === 0) {
+                alert('There are no submissions to clear.');
+                return;
+            }
+
+            const confirmed = confirm(
+                `Are you sure you want to clear ALL submission history for client "${clientData.hostname}"?\n\n` +
+                `This will delete ${submissionCount} submission(s) and cannot be undone.`
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/clients/clear-history/${clientID}`, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to clear history');
+                }
+
+                const result = await response.json();
+                alert(`Success: ${result.message}`);
+
+                // Reload the page to show updated data
+                window.location.reload();
+            } catch (error) {
+                alert('Error clearing history: ' + error.message);
+            }
+        }
+
+        // View submission detail
+        function viewSubmission(submissionID) {
+            window.location.href = `/submission-detail?submission_id=${encodeURIComponent(submissionID)}`;
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+
+        // Format date (short)
+        function formatDateShort(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Load saved theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/api/v1/auth/logout', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Logout failed. Please try again.');
+            }
+        }
+
+        // Initialize on page load
+        loadTheme();
+        init();
+    </script>
+</body>
+</html>

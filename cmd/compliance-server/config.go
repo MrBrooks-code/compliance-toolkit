@@ -40,9 +40,11 @@ type DatabaseSettings struct {
 
 // AuthSettings contains authentication configuration
 type AuthSettings struct {
-	Enabled    bool     `mapstructure:"enabled"`
-	APIKeys    []string `mapstructure:"api_keys"`
-	RequireKey bool     `mapstructure:"require_key"`
+	Enabled       bool     `mapstructure:"enabled"`
+	APIKeys       []string `mapstructure:"api_keys"`        // Plain text keys (legacy)
+	APIKeyHashes  []string `mapstructure:"api_key_hashes"`  // Bcrypt hashed keys (recommended)
+	RequireKey    bool     `mapstructure:"require_key"`
+	UseHashedKeys bool     `mapstructure:"use_hashed_keys"` // Whether to use hashed keys
 }
 
 // DashboardSettings contains web dashboard configuration
@@ -107,6 +109,8 @@ func setConfigDefaults(v *viper.Viper) {
 	v.SetDefault("auth.enabled", true)
 	v.SetDefault("auth.require_key", true)
 	v.SetDefault("auth.api_keys", []string{})
+	v.SetDefault("auth.api_key_hashes", []string{})
+	v.SetDefault("auth.use_hashed_keys", false) // Default to false for backwards compatibility
 
 	// Dashboard defaults
 	v.SetDefault("dashboard.enabled", true)

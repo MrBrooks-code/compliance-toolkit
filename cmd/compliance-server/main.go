@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/spf13/pflag"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const version = "1.0.0"
@@ -19,6 +20,7 @@ func main() {
 	configFile := flags.StringP("config", "c", "", "Path to config file")
 	showVersion := flags.BoolP("version", "v", false, "Show version and exit")
 	generateConfig := flags.Bool("generate-config", false, "Generate default config file and exit")
+	hashAPIKey := flags.String("hash-api-key", "", "Generate bcrypt hash for an API key and exit")
 	port := flags.IntP("port", "p", 0, "Server port (overrides config)")
 
 	flags.Parse(os.Args[1:])
@@ -26,6 +28,15 @@ func main() {
 	// Handle version
 	if *showVersion {
 		fmt.Printf("Compliance Toolkit Server v%s\n", version)
+		return
+	}
+
+	// Handle API key hashing
+	if *hashAPIKey != "" {
+		if err := hashAndPrintAPIKey(*hashAPIKey); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to hash API key: %v\n", err)
+			os.Exit(1)
+		}
 		return
 	}
 
@@ -154,4 +165,36 @@ func getConfigPath(configPath string) string {
 		return configPath
 	}
 	return "server.yaml"
+}
+
+// hashAndPrintAPIKey generates a bcrypt hash for an API key
+func hashAndPrintAPIKey(apiKey string) error {
+	if apiKey == "" {
+		return fmt.Errorf("API key cannot be empty")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(apiKey), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("failed to hash API key: %w", err)
+	}
+
+	fmt.Println("API Key Hash Generation")
+	fmt.Println("=======================")
+	fmt.Printf("\nPlain API Key: %s\n", apiKey)
+	fmt.Printf("Bcrypt Hash:   %s\n\n", string(hash))
+	fmt.Println("Add this hash to your server.yaml:")
+	fmt.Println("---")
+	fmt.Println("auth:")
+	fmt.Println("  enabled: true")
+	fmt.Println("  require_key: true")
+	fmt.Println("  use_hashed_keys: true")
+	fmt.Println("  api_key_hashes:")
+	fmt.Printf("    - \"%s\"\n", string(hash))
+	fmt.Println("---")
+	fmt.Println("\n⚠️  SECURITY WARNING:")
+	fmt.Println("  - Store the plain API key securely for client use")
+	fmt.Println("  - Only the hash should be in server.yaml")
+	fmt.Println("  - The plain key cannot be recovered from the hash")
+
+	return nil
 }

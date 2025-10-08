@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Policies - Compliance Toolkit</title>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --success: #059669;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --info: #0284c7;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border: #334155;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --danger: #f87171;
+            --warning: #fbbf24;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 64px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .nav {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav a:hover {
+            color: var(--primary);
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 8px;
+        }
+
+        .logout-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .breadcrumb {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .breadcrumb a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        .card {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 1px 3px var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .filter-input, .filter-select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .policies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .policy-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .policy-card:hover {
+            box-shadow: 0 4px 12px var(--shadow);
+            transform: translateY(-2px);
+        }
+
+        .policy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .policy-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .policy-framework {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge.draft {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        [data-theme="dark"] .badge.active {
+            background: #064e3b;
+            color: #a7f3d0;
+        }
+
+        [data-theme="dark"] .badge.inactive {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        [data-theme="dark"] .badge.draft {
+            background: #78350f;
+            color: #fde68a;
+        }
+
+        .policy-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .policy-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .policy-meta-item {
+            display: flex;
+            gap: 4px;
+        }
+
+        .policy-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+        }
+
+        .error-banner {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        [data-theme="dark"] .error-banner {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">⚙️ Compliance Toolkit</div>
+            <nav class="nav">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/policies">Policies</a>
+                <a href="/settings">Settings</a>
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌓</button>
+                <button class="logout-btn" onclick="logout()" title="Logout">Logout</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="/dashboard">Dashboard</a> / Policies
+        </div>
+
+        <div class="page-header">
+            <h1 class="page-title">Compliance Policies</h1>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn btn-secondary" onclick="importPolicies()">📥 Import from Reports</button>
+                <button class="btn btn-primary" onclick="showCreateModal()">+ New Policy</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-framework">Framework</label>
+                    <select id="filter-framework" class="filter-select" onchange="filterPolicies()">
+                        <option value="">All Frameworks</option>
+                        <option value="NIST">NIST</option>
+                        <option value="FIPS">FIPS</option>
+                        <option value="CIS">CIS</option>
+                        <option value="ISO">ISO</option>
+                        <option value="Custom">Custom</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-status">Status</label>
+                    <select id="filter-status" class="filter-select" onchange="filterPolicies()">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="draft">Draft</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-search">Search</label>
+                    <input type="text" id="filter-search" class="filter-input" placeholder="Search policies..." oninput="filterPolicies()">
+                </div>
+            </div>
+        </div>
+
+        <div id="error-banner" class="error-banner"></div>
+
+        <div id="policies-container">
+            <div class="policies-grid" id="policies-grid">
+                <!-- Policies will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Policy Modal -->
+    <div id="policy-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">New Policy</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="policy-form">
+                    <div class="form-group">
+                        <label for="policy-id">Policy ID *</label>
+                        <input type="text" id="policy-id" class="form-input" required placeholder="e.g., nist-800-171">
+                    </div>
+                    <div class="form-group">
+                        <label for="policy-name">Policy Name *</label>
+                        <input type="text" id="policy-name" class="form-input" required placeholder="e.g., NIST 800-171 Rev 2">
+                    </div>
+                    <div class="form-group">
+                        <label for="policy-description">Description</label>
+                        <input type="text" id="policy-description" class="form-input" placeholder="Brief description of the policy">
+                    </div>
+                    <div class="form-group">
+                        <label for="policy-framework">Framework</label>
+                        <select id="policy-framework" class="form-select">
+                            <option value="">Select Framework</option>
+                            <option value="NIST">NIST</option>
+                            <option value="FIPS">FIPS</option>
+                            <option value="CIS">CIS</option>
+                            <option value="ISO">ISO</option>
+                            <option value="Custom">Custom</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="policy-version">Version</label>
+                        <input type="text" id="policy-version" class="form-input" placeholder="e.g., 2.0.0">
+                    </div>
+                    <div class="form-group">
+                        <label for="policy-category">Category</label>
+                        <input type="text" id="policy-category" class="form-input" placeholder="e.g., Security & Compliance">
+                    </div>
+                    <div class="form-group">
+                        <label for="policy-author">Author</label>
+                        <input type="text" id="policy-author" class="form-input" placeholder="e.g., IT Security Team">
+                    </div>
+                    <div class="form-group">
+                        <label for="policy-status">Status</label>
+                        <select id="policy-status" class="form-select">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="draft">Draft</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="policy-data">Policy Configuration (JSON) *</label>
+                        <textarea id="policy-data" class="form-textarea" required placeholder='{"version": "1.0", "metadata": {...}, "queries": [...]}'></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="submit-btn">Create Policy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Policy Modal -->
+    <div id="view-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="view-modal-title">Policy Details</h2>
+                <button class="modal-close" onclick="closeViewModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="view-modal-body">
+                <!-- Policy details will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allPolicies = [];
+        let editingPolicyId = null;
+
+        // Theme management
+        function initTheme() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/api/v1/auth/logout', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Logout failed. Please try again.');
+            }
+        }
+
+        // Load policies
+        async function loadPolicies() {
+            try {
+                // Add cache-busting timestamp to ensure fresh data
+                const response = await fetch(`/api/v1/policies?_t=${Date.now()}`, {
+                    credentials: 'same-origin',
+                    cache: 'no-cache'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load policies');
+                }
+
+                allPolicies = await response.json() || [];
+                console.log('Loaded policies:', allPolicies.length);
+                renderPolicies(allPolicies);
+            } catch (error) {
+                showError('Failed to load policies: ' + error.message);
+                renderEmptyState();
+            }
+        }
+
+        // Render policies
+        function renderPolicies(policies) {
+            const container = document.getElementById('policies-grid');
+
+            if (!policies || policies.length === 0) {
+                renderEmptyState();
+                return;
+            }
+
+            container.innerHTML = policies.map(policy => {
+                const escapedName = (policy.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const escapedId = (policy.policy_id || '').replace(/'/g, "\\'");
+
+                return `
+                <div class="policy-card">
+                    <div class="policy-header">
+                        <div>
+                            <div class="policy-framework">${policy.framework || 'N/A'}</div>
+                            <div class="policy-name">${policy.name}</div>
+                        </div>
+                        <span class="badge ${policy.status}">${policy.status}</span>
+                    </div>
+                    <div class="policy-description">${policy.description || 'No description provided'}</div>
+                    <div class="policy-meta">
+                        <div class="policy-meta-item">
+                            <span>📋</span>
+                            <span>Version ${policy.version || 'N/A'}</span>
+                        </div>
+                        ${policy.category ? `
+                        <div class="policy-meta-item">
+                            <span>🏷️</span>
+                            <span>${policy.category}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="policy-actions">
+                        <button class="btn btn-secondary btn-small" onclick="viewPolicy('${escapedId}')">View</button>
+                        <button class="btn btn-secondary btn-small" onclick="editPolicy('${escapedId}')">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="deletePolicy('${escapedId}', '${escapedName}')">Delete</button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // Render empty state
+        function renderEmptyState() {
+            const container = document.getElementById('policies-grid');
+            container.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <div class="empty-state-icon">📜</div>
+                    <div class="empty-state-title">No policies found</div>
+                    <div class="empty-state-text">Create your first compliance policy to get started</div>
+                </div>
+            `;
+        }
+
+        // Filter policies
+        function filterPolicies() {
+            const framework = document.getElementById('filter-framework').value.toLowerCase();
+            const status = document.getElementById('filter-status').value.toLowerCase();
+            const search = document.getElementById('filter-search').value.toLowerCase();
+
+            const filtered = allPolicies.filter(policy => {
+                const matchesFramework = !framework || (policy.framework || '').toLowerCase() === framework;
+                const matchesStatus = !status || policy.status.toLowerCase() === status;
+                const matchesSearch = !search ||
+                    policy.name.toLowerCase().includes(search) ||
+                    (policy.description || '').toLowerCase().includes(search) ||
+                    policy.policy_id.toLowerCase().includes(search);
+
+                return matchesFramework && matchesStatus && matchesSearch;
+            });
+
+            renderPolicies(filtered);
+        }
+
+        // Modal management
+        function showCreateModal() {
+            editingPolicyId = null;
+            document.getElementById('modal-title').textContent = 'New Policy';
+            document.getElementById('submit-btn').textContent = 'Create Policy';
+            document.getElementById('policy-form').reset();
+            document.getElementById('policy-id').disabled = false;
+            document.getElementById('policy-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('policy-modal').classList.remove('active');
+            document.getElementById('policy-form').reset();
+            editingPolicyId = null;
+        }
+
+        function closeViewModal() {
+            document.getElementById('view-modal').classList.remove('active');
+        }
+
+        // View policy
+        async function viewPolicy(policyId) {
+            console.log('Viewing policy:', policyId);
+            try {
+                const response = await fetch(`/api/v1/policies/${policyId}`, {
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API error:', response.status, errorText);
+                    throw new Error(`Failed to load policy: ${response.status}`);
+                }
+
+                const policy = await response.json();
+                console.log('Policy loaded:', policy);
+                const modalBody = document.getElementById('view-modal-body');
+
+                // Parse policy data
+                let policyDataFormatted = 'Invalid JSON';
+                try {
+                    const parsed = JSON.parse(policy.policy_data);
+                    policyDataFormatted = JSON.stringify(parsed, null, 2);
+                } catch (e) {
+                    policyDataFormatted = policy.policy_data;
+                }
+
+                modalBody.innerHTML = `
+                    <div style="display: grid; gap: 16px;">
+                        <div>
+                            <strong>Policy ID:</strong><br>
+                            <code>${policy.policy_id}</code>
+                        </div>
+                        <div>
+                            <strong>Name:</strong><br>
+                            ${policy.name}
+                        </div>
+                        <div>
+                            <strong>Description:</strong><br>
+                            ${policy.description || 'N/A'}
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <strong>Framework:</strong><br>
+                                ${policy.framework || 'N/A'}
+                            </div>
+                            <div>
+                                <strong>Version:</strong><br>
+                                ${policy.version || 'N/A'}
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <strong>Category:</strong><br>
+                                ${policy.category || 'N/A'}
+                            </div>
+                            <div>
+                                <strong>Author:</strong><br>
+                                ${policy.author || 'N/A'}
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <strong>Status:</strong><br>
+                                <span class="badge ${policy.status}">${policy.status}</span>
+                            </div>
+                            <div>
+                                <strong>Created:</strong><br>
+                                ${new Date(policy.created_at).toLocaleString()}
+                            </div>
+                        </div>
+                        <div>
+                            <strong>Policy Configuration:</strong><br>
+                            <textarea readonly style="width: 100%; min-height: 300px; margin-top: 8px; padding: 12px; font-family: 'Courier New', monospace; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary);">${policyDataFormatted}</textarea>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('view-modal').classList.add('active');
+            } catch (error) {
+                showError('Failed to load policy: ' + error.message);
+            }
+        }
+
+        // Edit policy
+        async function editPolicy(policyId) {
+            try {
+                const response = await fetch(`/api/v1/policies/${policyId}`, {
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load policy');
+                }
+
+                const policy = await response.json();
+                editingPolicyId = policyId;
+
+                document.getElementById('modal-title').textContent = 'Edit Policy';
+                document.getElementById('submit-btn').textContent = 'Update Policy';
+                document.getElementById('policy-id').value = policy.policy_id;
+                document.getElementById('policy-id').disabled = true;
+                document.getElementById('policy-name').value = policy.name;
+                document.getElementById('policy-description').value = policy.description || '';
+                document.getElementById('policy-framework').value = policy.framework || '';
+                document.getElementById('policy-version').value = policy.version || '';
+                document.getElementById('policy-category').value = policy.category || '';
+                document.getElementById('policy-author').value = policy.author || '';
+                document.getElementById('policy-status').value = policy.status;
+                document.getElementById('policy-data').value = policy.policy_data;
+
+                document.getElementById('policy-modal').classList.add('active');
+            } catch (error) {
+                showError('Failed to load policy for editing: ' + error.message);
+            }
+        }
+
+        // Delete policy
+        async function deletePolicy(policyId, policyName) {
+            if (!confirm(`Are you sure you want to delete the policy "${policyName}"?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/policies/${policyId}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete policy');
+                }
+
+                alert('Policy deleted successfully');
+                loadPolicies();
+            } catch (error) {
+                showError('Failed to delete policy: ' + error.message);
+            }
+        }
+
+        // Import policies from report configurations
+        async function importPolicies() {
+            if (!confirm('This will import policies from the configs/reports directory.\n\nExisting policies will not be overwritten.\n\nContinue?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/policies/import', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to import policies');
+                }
+
+                const result = await response.json();
+
+                let message = `Import completed!\n\n`;
+                message += `✅ Imported: ${result.imported} policies\n`;
+                message += `⏭️ Skipped: ${result.skipped} existing policies\n`;
+
+                if (result.errors && result.errors.length > 0) {
+                    message += `\n❌ Errors:\n${result.errors.join('\n')}`;
+                }
+
+                alert(message);
+                loadPolicies();
+            } catch (error) {
+                showError('Failed to import policies: ' + error.message);
+            }
+        }
+
+        // Form submission
+        document.getElementById('policy-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Validate JSON
+            const policyData = document.getElementById('policy-data').value;
+            try {
+                JSON.parse(policyData);
+            } catch (error) {
+                showError('Invalid JSON in policy configuration');
+                return;
+            }
+
+            const policy = {
+                policy_id: document.getElementById('policy-id').value,
+                name: document.getElementById('policy-name').value,
+                description: document.getElementById('policy-description').value,
+                framework: document.getElementById('policy-framework').value,
+                version: document.getElementById('policy-version').value,
+                category: document.getElementById('policy-category').value,
+                author: document.getElementById('policy-author').value,
+                status: document.getElementById('policy-status').value,
+                policy_data: policyData
+            };
+
+            try {
+                const url = editingPolicyId
+                    ? `/api/v1/policies/${editingPolicyId}`
+                    : '/api/v1/policies';
+                const method = editingPolicyId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(policy)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to save policy');
+                }
+
+                console.log('Policy saved successfully, reloading policies...');
+                closeModal();
+                await loadPolicies();
+                alert(editingPolicyId ? 'Policy updated successfully' : 'Policy created successfully');
+            } catch (error) {
+                showError('Failed to save policy: ' + error.message);
+            }
+        });
+
+        // Error handling
+        function showError(message) {
+            const banner = document.getElementById('error-banner');
+            banner.textContent = message;
+            banner.style.display = 'block';
+            setTimeout(() => {
+                banner.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize
+        initTheme();
+        loadPolicies();
+
+        // Close modals on outside click
+        document.getElementById('policy-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'policy-modal') {
+                closeModal();
+            }
+        });
+
+        document.getElementById('view-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'view-modal') {
+                closeViewModal();
+            }
+        });
+    </script>
+</body>
+</html>

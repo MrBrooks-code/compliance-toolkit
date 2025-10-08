@@ -136,6 +136,19 @@ func (d *Database) initSchema() error {
 		last_login TIMESTAMP
 	);
 
+	-- API Keys table for secure key management
+	CREATE TABLE IF NOT EXISTS api_keys (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL,
+		key_hash TEXT NOT NULL,
+		key_prefix TEXT NOT NULL,  -- First 8 chars for display
+		created_by TEXT,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		last_used TIMESTAMP,
+		expires_at TIMESTAMP,
+		is_active BOOLEAN DEFAULT 1
+	);
+
 	-- Indexes for performance
 	CREATE INDEX IF NOT EXISTS idx_submissions_client_id ON submissions(client_id);
 	CREATE INDEX IF NOT EXISTS idx_submissions_timestamp ON submissions(timestamp);
@@ -1037,4 +1050,225 @@ func (d *Database) HasAnyUsers() (bool, error) {
 	}
 
 	return count > 0, nil
+}
+
+// APIKey represents an API key in the database
+type APIKey struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	KeyHash   string `json:"-"`           // Never expose hash in JSON
+	KeyPrefix string `json:"key_prefix"`  // First 8 chars for display
+	CreatedBy string `json:"created_by"`
+	CreatedAt string `json:"created_at"`
+	LastUsed  string `json:"last_used,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
+	IsActive  bool   `json:"is_active"`
+}
+
+// CreateAPIKey creates a new API key in the database
+func (d *Database) CreateAPIKey(name, keyHash, keyPrefix, createdBy string, expiresAt *string) error {
+	query := `
+		INSERT INTO api_keys (name, key_hash, key_prefix, created_by, expires_at, is_active)
+		VALUES (?, ?, ?, ?, ?, 1)
+	`
+
+	_, err := d.db.Exec(query, name, keyHash, keyPrefix, createdBy, expiresAt)
+	if err != nil {
+		return fmt.Errorf("failed to create API key: %w", err)
+	}
+
+	d.logger.Info("API key created", "name", name, "created_by", createdBy)
+	return nil
+}
+
+// ListAPIKeys retrieves all API keys
+func (d *Database) ListAPIKeys() ([]APIKey, error) {
+	query := `
+		SELECT id, name, key_hash, key_prefix, created_by, created_at, last_used, expires_at, is_active
+		FROM api_keys
+		ORDER BY created_at DESC
+	`
+
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query API keys: %w", err)
+	}
+	defer rows.Close()
+
+	// Initialize with empty slice instead of nil to avoid JSON null
+	keys := []APIKey{}
+	for rows.Next() {
+		var key APIKey
+		var lastUsed, expiresAt sql.NullString
+
+		err := rows.Scan(
+			&key.ID,
+			&key.Name,
+			&key.KeyHash,
+			&key.KeyPrefix,
+			&key.CreatedBy,
+			&key.CreatedAt,
+			&lastUsed,
+			&expiresAt,
+			&key.IsActive,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan API key: %w", err)
+		}
+
+		if lastUsed.Valid {
+			key.LastUsed = lastUsed.String
+		}
+		if expiresAt.Valid {
+			key.ExpiresAt = expiresAt.String
+		}
+
+		keys = append(keys, key)
+	}
+
+	return keys, nil
+}
+
+// GetAPIKeyByHash retrieves an API key by its hash
+func (d *Database) GetAPIKeyByHash(keyHash string) (*APIKey, error) {
+	query := `
+		SELECT id, name, key_hash, key_prefix, created_by, created_at, last_used, expires_at, is_active
+		FROM api_keys
+		WHERE key_hash = ? AND is_active = 1
+	`
+
+	var key APIKey
+	var lastUsed, expiresAt sql.NullString
+
+	err := d.db.QueryRow(query, keyHash).Scan(
+		&key.ID,
+		&key.Name,
+		&key.KeyHash,
+		&key.KeyPrefix,
+		&key.CreatedBy,
+		&key.CreatedAt,
+		&lastUsed,
+		&expiresAt,
+		&key.IsActive,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query API key: %w", err)
+	}
+
+	if lastUsed.Valid {
+		key.LastUsed = lastUsed.String
+	}
+	if expiresAt.Valid {
+		key.ExpiresAt = expiresAt.String
+	}
+
+	return &key, nil
+}
+
+// ListActiveAPIKeyHashes retrieves all active API key hashes for authentication
+func (d *Database) ListActiveAPIKeyHashes() ([]string, error) {
+	query := `
+		SELECT key_hash
+		FROM api_keys
+		WHERE is_active = 1 AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+	`
+
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query active API key hashes: %w", err)
+	}
+	defer rows.Close()
+
+	// Initialize with empty slice instead of nil
+	hashes := []string{}
+	for rows.Next() {
+		var hash string
+		if err := rows.Scan(&hash); err != nil {
+			return nil, fmt.Errorf("failed to scan key hash: %w", err)
+		}
+		hashes = append(hashes, hash)
+	}
+
+	return hashes, nil
+}
+
+// UpdateAPIKeyLastUsed updates the last_used timestamp for an API key
+func (d *Database) UpdateAPIKeyLastUsed(keyHash string) error {
+	query := `UPDATE api_keys SET last_used = CURRENT_TIMESTAMP WHERE key_hash = ?`
+
+	_, err := d.db.Exec(query, keyHash)
+	if err != nil {
+		return fmt.Errorf("failed to update API key last used: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteAPIKey deletes an API key by ID
+func (d *Database) DeleteAPIKey(id int) error {
+	query := `DELETE FROM api_keys WHERE id = ?`
+
+	result, err := d.db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete API key: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("API key not found")
+	}
+
+	d.logger.Info("API key deleted", "id", id)
+	return nil
+}
+
+// DeactivateAPIKey deactivates an API key by ID
+func (d *Database) DeactivateAPIKey(id int) error {
+	query := `UPDATE api_keys SET is_active = 0 WHERE id = ?`
+
+	result, err := d.db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("failed to deactivate API key: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("API key not found")
+	}
+
+	d.logger.Info("API key deactivated", "id", id)
+	return nil
+}
+
+// ActivateAPIKey activates an API key by ID
+func (d *Database) ActivateAPIKey(id int) error {
+	query := `UPDATE api_keys SET is_active = 1 WHERE id = ?`
+
+	result, err := d.db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("failed to activate API key: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("API key not found")
+	}
+
+	d.logger.Info("API key activated", "id", id)
+	return nil
 }

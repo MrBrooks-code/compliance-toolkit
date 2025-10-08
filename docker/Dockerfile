@@ -1,0 +1,42 @@
+# Simple Dockerfile that uses a pre-built compliance-server binary
+# Build the binary first, then copy it to docker/bin/ directory
+
+FROM alpine:latest
+
+# Install runtime dependencies
+RUN apk add --no-cache ca-certificates tzdata wget
+
+# Create non-root user
+RUN addgroup -g 1000 compliance && \
+    adduser -D -u 1000 -G compliance compliance
+
+# Create necessary directories
+RUN mkdir -p /app/data /app/certs /app/logs && \
+    chown -R compliance:compliance /app
+
+WORKDIR /app
+
+# Copy pre-built binary from local bin directory
+COPY docker/bin/compliance-server .
+RUN chmod +x compliance-server
+
+# Copy HTML templates from source
+COPY cmd/compliance-server/*.html .
+
+# Copy entrypoint script
+COPY docker/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Switch to non-root user
+USER compliance
+
+# Expose ports
+EXPOSE 8080 8443
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${SERVER_PORT:-8080}/ || exit 1
+
+# Set entrypoint
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["./compliance-server"]
