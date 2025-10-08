@@ -604,20 +604,6 @@ func (s *ComplianceServer) handlePoliciesPage(w http.ResponseWriter, r *http.Req
 	w.Write(html)
 }
 
-// handleAboutPage serves the about page
-func (s *ComplianceServer) handleAboutPage(w http.ResponseWriter, r *http.Request) {
-	// Read about HTML file
-	html, err := os.ReadFile("about.html")
-	if err != nil {
-		s.logger.Error("Failed to read about.html", "error", err)
-		http.Error(w, "About page not available", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html")
-	w.Write(html)
-}
-
 // handleDashboardSummary provides dashboard data
 func (s *ComplianceServer) handleDashboardSummary(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {

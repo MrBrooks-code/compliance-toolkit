@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -182,8 +183,23 @@ func (r *ReportRunner) executeQuery(query pkg.RegistryQuery) (api.QueryResult, *
 	evidence.Result = "success"
 	evidence.Details["actual_value"] = value
 
+	// Debug logging
+	r.logger.Debug("Comparing values",
+		"query", query.Name,
+		"actual", value,
+		"expected", query.ExpectedValue,
+		"actual_len", len(value),
+		"expected_len", len(query.ExpectedValue),
+	)
+
 	// Smart comparison (handles both exact matches and "value (description)" format)
-	if compareValues(value, query.ExpectedValue) {
+	matches := compareValues(value, query.ExpectedValue)
+	r.logger.Debug("Comparison result",
+		"query", query.Name,
+		"matches", matches,
+	)
+
+	if matches {
 		result.Status = "pass"
 	} else {
 		result.Status = "fail"
@@ -405,6 +421,7 @@ func (r *ReportRunner) saveHTMLReport(reportConfig *pkg.RegistryConfig, results 
 // compareValues performs smart comparison of registry values with expected values
 // Handles cases where expected value contains descriptions like "1 (Enabled)"
 func compareValues(actual, expected string) bool {
+	// Trim whitespace and normalize
 	actual = strings.TrimSpace(actual)
 	expected = strings.TrimSpace(expected)
 
@@ -414,9 +431,8 @@ func compareValues(actual, expected string) bool {
 	}
 
 	// Case 2: Expected format is "value (description)"
-	// Check if actual value matches the value part before the parenthesis
+	// Extract value before opening parenthesis and compare
 	if idx := strings.Index(expected, "("); idx > 0 {
-		// Extract just the value part (before the parenthesis)
 		expectedValue := strings.TrimSpace(expected[:idx])
 		if strings.EqualFold(actual, expectedValue) {
 			return true
@@ -424,10 +440,28 @@ func compareValues(actual, expected string) bool {
 	}
 
 	// Case 3: Actual format is "value (description)", expected is just value
+	// Extract value before opening parenthesis and compare
 	if idx := strings.Index(actual, "("); idx > 0 {
 		actualValue := strings.TrimSpace(actual[:idx])
 		if strings.EqualFold(actualValue, expected) {
 			return true
+		}
+	}
+
+	// Case 4: Handle numeric comparisons (convert both to integers if possible)
+	// Registry often returns DWORD as integer, config might have "1" or "0"
+	actualInt, actualErr := strconv.ParseInt(actual, 10, 64)
+	expectedInt, expectedErr := strconv.ParseInt(expected, 10, 64)
+	if actualErr == nil && expectedErr == nil {
+		return actualInt == expectedInt
+	}
+
+	// Case 5: Expected has value before parenthesis, try numeric comparison
+	if idx := strings.Index(expected, "("); idx > 0 {
+		expectedValue := strings.TrimSpace(expected[:idx])
+		expectedInt, expectedErr := strconv.ParseInt(expectedValue, 10, 64)
+		if actualErr == nil && expectedErr == nil {
+			return actualInt == expectedInt
 		}
 	}
 
