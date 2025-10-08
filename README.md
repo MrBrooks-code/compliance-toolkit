@@ -1,7 +1,7 @@
 # Compliance Toolkit Documentation
 
 **Version:** 1.1.0
-**Last Updated:** 2025-10-06
+**Last Updated:** 2025-10-08
 
 Welcome to the Compliance Toolkit! A comprehensive Windows registry compliance scanner with **server/client architecture** and **web dashboard**.
 
@@ -126,7 +126,47 @@ The Compliance Toolkit is a comprehensive Windows registry compliance scanner wi
 
 ## 🏃 Quick Start
 
-### Standalone Mode (Local Scanning)
+### 🐳 Docker Deployment (Recommended)
+
+The fastest way to get started is using Docker:
+
+```bash
+# Clone the repository
+git clone https://github.com/MrBrooks-code/compliance-toolkit.git
+cd compliance-toolkit
+
+# Build and run with Docker Compose
+docker-compose up -d
+
+# Access the web dashboard
+http://localhost:8080
+```
+
+**Default credentials:**
+- Username: `admin`
+- Password: `admin123`
+
+**What you get:**
+- ✅ Web dashboard at `http://localhost:8080`
+- ✅ RESTful API for compliance submissions
+- ✅ SQLite database with persistent storage
+- ✅ Automatic container restart on failure
+
+**Useful commands:**
+```bash
+# View logs
+docker-compose logs -f
+
+# Stop the server
+docker-compose down
+
+# Rebuild after changes
+docker-compose up --build -d
+```
+
+---
+
+### 🖥️ Standalone Mode (Local Scanning)
 
 **Interactive Mode:**
 ```bash
@@ -148,7 +188,9 @@ ComplianceToolkit.exe -report=NIST_800_171_compliance.json
 ComplianceToolkit.exe -report=all -quiet
 ```
 
-### Server/Client Mode (Centralized Monitoring)
+---
+
+### 🌐 Server/Client Mode (Manual Deployment)
 
 **1. Start Server:**
 ```bash
@@ -167,10 +209,11 @@ http://localhost:8443/dashboard
 ```
 
 **Features available in dashboard:**
-- 📊 **Dashboard** - Real-time stats, recent submissions, active clients
-- 🔍 **Client Detail** - Click "View Details →" on any client
-- 📋 **Submission Detail** - Click "View Details →" on any submission
-- ⚙️ **Settings** - Manage API keys, view server configuration
+- 📊 **Dashboard** - Real-time stats, recent submissions, registered clients
+- 💻 **Clients** - Full client list with search, filtering, and pagination
+- 📋 **Policies** - Import and manage compliance policies
+- ⚙️ **Settings** - Manage users, API keys, server configuration
+- ℹ️ **About** - Project info and GitHub repository link
 - 🌓 **Theme Toggle** - Switch between light/dark mode
 
 **Testing:** See [Unit Testing Guide](docs/testing/UNIT_TESTING_GUIDE.md) for complete testing procedures.
@@ -227,30 +270,24 @@ docs/
 
 ---
 
-### Example Report - 
-<p align="center">
-  <img src="example_report.png" alt="My local diagram" />
-</p>
-
-
----
-
-
 ## 🔄 Updates & Versions
 
 **Current Version:** 1.1.0
 
-**Recent Updates (Phase 3.1 - Enhanced Web UI):**
+**Recent Updates (Phase 3.2 - Full Web UI):**
 - ✅ **Server/Client Architecture** - Centralized compliance monitoring
-- ✅ **Web Dashboard** - Real-time stats and client management
-- ✅ **Client Detail Page** - Complete client history with trend charts
-- ✅ **Submission Detail Page** - Full compliance check details
-- ✅ **Settings Page** - Live API key management
+- ✅ **Web Dashboard** - Real-time stats with recent submissions and clients
+- ✅ **Clients Page** - Full client list with search, filtering, sorting, and pagination
+- ✅ **Client Detail Page** - Complete client history with compliance trend charts
+- ✅ **Submission Detail Page** - Full compliance check details with evidence
+- ✅ **Policies Page** - Import and manage compliance policies
+- ✅ **Settings Page** - User management, API keys, server configuration
+- ✅ **About Page** - Project information and GitHub repository link
 - ✅ **Cookie-based Authentication** - Secure token management
-- ✅ **Dark/Light Theme** - System-wide theme support
+- ✅ **Dark/Light Theme** - System-wide theme support with smooth transitions
+- ✅ **Docker Support** - One-command deployment with Docker Compose
 - ✅ **Export Functionality** - JSON downloads for all data
 - ✅ **Auto-refresh Dashboard** - 30-second update intervals
-- ✅ **System Info Updates** - Automatic client metadata sync
 
 **Previous Updates:**
 - ✅ CLI automation support
@@ -277,16 +314,85 @@ See [Future Enhancements](docs/project/FUTURE_ENHANCEMENTS.md) for complete road
 
 ## 📸 Screenshots
 
-### Web Dashboard
-Real-time monitoring with stats cards, recent submissions, and active clients table.
-
-### Client Detail Page
-Complete client history with compliance trend chart and submission history.
-
-### Submission Detail Page
-Full compliance check details with expandable registry paths and evidence records.
+### Login Page
+<p align="center">
+  <img src="img/login.png" alt="Login Page" width="400"/>
+</p>
+<p align="center">
+  <em>Secure authentication with customizable login banner and theme support.</em>
+</p>
 
 ---
 
-*Documentation Version: 1.1*
-*Last Updated: 2025-10-06*
+### Dashboard
+<p align="center">
+  <img src="img/dashboard.png" alt="Dashboard" width="800"/>
+</p>
+<p align="center">
+  <em>Real-time monitoring with compliance stats, recent submissions, and recent clients overview.</em>
+</p>
+
+---
+
+### Clients Page
+<p align="center">
+  <img src="img/clients.png" alt="Clients Page" width="800"/>
+</p>
+<p align="center">
+  <em>Full client list with advanced search, filtering by status/compliance, sortable columns, and pagination.</em>
+</p>
+
+---
+
+### Client Detail Page
+<p align="center">
+  <img src="img/client-detail.png" alt="Client Detail" width="800"/>
+</p>
+<p align="center">
+  <em>Complete client history with system information, compliance trend chart, and detailed submission history.</em>
+</p>
+
+---
+
+### Submission Detail Page
+<p align="center">
+  <img src="img/submission-detail.png" alt="Submission Detail" width="800"/>
+</p>
+<p align="center">
+  <em>Full compliance check results with passed/failed status, registry paths, and evidence records.</em>
+</p>
+
+---
+
+### Policies Page
+<p align="center">
+  <img src="img/policies.png" alt="Policies Page" width="800"/>
+</p>
+<p align="center">
+  <em>Import and manage compliance policies with search and filtering capabilities.</em>
+</p>
+
+---
+
+### Settings Page
+<p align="center">
+  <img src="img/settings.png" alt="Settings Page" width="800"/>
+</p>
+<p align="center">
+  <em>Manage users, API keys, server configuration, and customize login messages.</em>
+</p>
+
+---
+
+### About Page
+<p align="center">
+  <img src="img/about.png" alt="About Page" width="800"/>
+</p>
+<p align="center">
+  <em>Project information, GitHub repository link, and documentation resources.</em>
+</p>
+
+---
+
+*Documentation Version: 1.2*
+*Last Updated: 2025-10-08*
