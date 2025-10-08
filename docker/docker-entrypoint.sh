@@ -1,0 +1,79 @@
+#!/bin/sh
+set -e
+
+# Compliance Server Docker Entrypoint Script
+# This script generates server.yaml from environment variables if it doesn't exist
+
+CONFIG_FILE="/app/server.yaml"
+
+# Function to generate config from environment variables
+generate_config() {
+    cat > "$CONFIG_FILE" <<EOF
+# Compliance Toolkit Server Configuration
+# Auto-generated from environment variables
+
+# HTTP/HTTPS server settings
+server:
+  host: "${SERVER_HOST:-0.0.0.0}"
+  port: ${SERVER_PORT:-8080}
+  tls:
+    enabled: ${TLS_ENABLED:-false}
+    cert_file: "${TLS_CERT_FILE:-certs/server.crt}"
+    key_file: "${TLS_KEY_FILE:-certs/server.key}"
+
+# Database configuration
+database:
+  type: "${DB_TYPE:-sqlite}"
+  path: "${DB_PATH:-data/compliance.db}"
+
+# Authentication settings
+auth:
+  enabled: ${AUTH_ENABLED:-true}
+  require_key: ${AUTH_REQUIRE_KEY:-false}
+  use_hashed_keys: ${USE_HASHED_KEYS:-false}
+  api_keys: []
+  api_key_hashes: []
+
+# Web dashboard
+dashboard:
+  enabled: ${DASHBOARD_ENABLED:-true}
+  path: "${DASHBOARD_PATH:-/dashboard}"
+  login_message: "${DASHBOARD_LOGIN_MESSAGE:-Welcome to Compliance Toolkit}"
+
+# Logging configuration
+logging:
+  level: "${LOGGING_LEVEL:-info}"
+  format: "${LOGGING_FORMAT:-json}"
+  output_path: "${LOGGING_OUTPUT:-stdout}"
+EOF
+
+    echo "Generated configuration file: $CONFIG_FILE"
+}
+
+# Check if config file exists
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "No configuration file found, generating from environment variables..."
+    generate_config
+else
+    echo "Using existing configuration file: $CONFIG_FILE"
+fi
+
+# Display configuration info
+echo "==================================="
+echo "Compliance Server Configuration:"
+echo "==================================="
+echo "Server Host: ${SERVER_HOST:-0.0.0.0}"
+echo "Server Port: ${SERVER_PORT:-8080}"
+echo "TLS Enabled: ${TLS_ENABLED:-false}"
+echo "Database Type: ${DB_TYPE:-sqlite}"
+echo "Database Path: ${DB_PATH:-data/compliance.db}"
+echo "Auth Enabled: ${AUTH_ENABLED:-true}"
+echo "Dashboard Enabled: ${DASHBOARD_ENABLED:-true}"
+echo "Log Level: ${LOGGING_LEVEL:-info}"
+echo "==================================="
+
+# Create directories if they don't exist
+mkdir -p /app/data /app/logs
+
+# Execute the command
+exec "$@"

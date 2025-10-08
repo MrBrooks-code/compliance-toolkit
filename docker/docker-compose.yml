@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  compliance-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.multistage
+    image: compliance-server:latest
+    container_name: compliance-server
+    restart: unless-stopped
+
+    # Environment variables (override with .env file)
+    environment:
+      - SERVER_HOST=${SERVER_HOST:-0.0.0.0}
+      - SERVER_PORT=${SERVER_PORT:-8080}
+      - TLS_ENABLED=${TLS_ENABLED:-false}
+      - TLS_CERT_FILE=${TLS_CERT_FILE:-certs/server.crt}
+      - TLS_KEY_FILE=${TLS_KEY_FILE:-certs/server.key}
+      - DB_TYPE=${DB_TYPE:-sqlite}
+      - DB_PATH=${DB_PATH:-data/compliance.db}
+      - AUTH_ENABLED=${AUTH_ENABLED:-true}
+      - AUTH_REQUIRE_KEY=${AUTH_REQUIRE_KEY:-false}
+      - DASHBOARD_ENABLED=${DASHBOARD_ENABLED:-true}
+      - DASHBOARD_PATH=${DASHBOARD_PATH:-/dashboard}
+      - DASHBOARD_LOGIN_MESSAGE=${DASHBOARD_LOGIN_MESSAGE:-Access is restricted to authorized personel only}
+      - LOGGING_LEVEL=${LOGGING_LEVEL:-info}
+      - LOGGING_FORMAT=${LOGGING_FORMAT:-json}
+      - LOGGING_OUTPUT=${LOGGING_OUTPUT:-stdout}
+      - TZ=${TZ:-UTC}
+
+    # Ports
+    ports:
+      - "${HOST_PORT:-8080}:${SERVER_PORT:-8080}"
+      # Uncomment for HTTPS (when TLS_ENABLED=true)
+      # - "${HOST_TLS_PORT:-8443}:8443"
+
+    # Volumes for persistence
+    volumes:
+      # Database persistence
+      - ./data:/app/data
+
+      # TLS certificates (if using HTTPS)
+      - ./certs:/app/certs:ro
+
+      # Logs persistence (optional)
+      - ./logs:/app/logs
+
+      # Custom configuration (optional - uncomment and create server.yaml first)
+      # - ./server.yaml:/app/server.yaml:ro
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${SERVER_PORT:-8080}/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # Resource limits (optional)
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Network
+    networks:
+      - compliance-network
+
+# Named volume for database (alternative to bind mount)
+volumes:
+  compliance-data:
+    driver: local
+
+networks:
+  compliance-network:
+    driver: bridge

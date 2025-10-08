@@ -1,0 +1,69 @@
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+compliance-server
+compliance-client
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test and coverage
+*.test
+coverage.out
+coverage.html
+
+# Data and logs (don't include in image)
+data/
+logs/
+output/
+*.db
+*.log
+
+# Certificates (should be mounted as volumes)
+certs/
+*.pem
+*.key
+*.crt
+
+# Documentation
+docs/
+*.md
+README.md
+LICENSE
+
+# Examples and scripts
+examples/
+scripts/
+
+# Config files (will be mounted or generated)
+server.yaml
+client.yaml
+.env
+.env.*
+
+# Docker files
+docker/
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Development files
+go.work
+go.work.sum
