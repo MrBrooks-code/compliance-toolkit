@@ -108,6 +108,7 @@ func (s *ComplianceServer) registerRoutes() {
 		s.mux.HandleFunc(s.config.Dashboard.Path, s.requireAuth(s.handleDashboard))
 		s.mux.HandleFunc("/settings", s.requireAuth(s.handleSettings))
 		s.mux.HandleFunc("/policies", s.requireAuth(s.handlePoliciesPage))
+		s.mux.HandleFunc("/about", s.requireAuth(s.handleAboutPage))
 		s.mux.HandleFunc("/client-detail", s.requireAuth(s.handleClientDetailPage))
 		s.mux.HandleFunc("/submission-detail", s.requireAuth(s.handleSubmissionDetailPage))
 		s.mux.HandleFunc("/api/v1/dashboard/summary", s.requireAuth(s.handleDashboardSummary))
@@ -567,6 +568,20 @@ func (s *ComplianceServer) handlePoliciesPage(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		s.logger.Error("Failed to read policies.html", "error", err)
 		http.Error(w, "Policies page not available", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(html)
+}
+
+// handleAboutPage serves the about page
+func (s *ComplianceServer) handleAboutPage(w http.ResponseWriter, r *http.Request) {
+	// Read about HTML file
+	html, err := os.ReadFile("about.html")
+	if err != nil {
+		s.logger.Error("Failed to read about.html", "error", err)
+		http.Error(w, "About page not available", http.StatusInternalServerError)
 		return
 	}
 
