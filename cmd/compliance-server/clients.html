@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clients - Compliance Toolkit Server</title>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --success: #059669;
+            --danger: #dc2626;
+            --warning: #d97706;
+            --info: #0284c7;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border: #334155;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --danger: #f87171;
+            --warning: #fbbf24;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 64px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .nav {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav a:hover {
+            color: var(--primary);
+        }
+
+        .nav a.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 8px;
+        }
+
+        .logout-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .section {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .search-filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .filter-select {
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .refresh-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--bg-secondary);
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-secondary);
+            border-bottom: 2px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        th:hover {
+            color: var(--primary);
+        }
+
+        th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.5;
+        }
+
+        th.sorted-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+
+        th.sorted-desc::after {
+            content: ' ↓';
+            opacity: 1;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: #d1fae5;
+            color: var(--success);
+        }
+
+        .badge.danger {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+
+        .badge.warning {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+
+        .badge.info {
+            background: #dbeafe;
+            color: var(--info);
+        }
+
+        [data-theme="dark"] .badge.success {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        [data-theme="dark"] .badge.danger {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        [data-theme="dark"] .badge.warning {
+            background: #78350f;
+            color: #fcd34d;
+        }
+
+        [data-theme="dark"] .badge.info {
+            background: #0c4a6e;
+            color: #7dd3fc;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .score {
+            font-weight: 600;
+        }
+
+        .score.high { color: var(--success); }
+        .score.medium { color: var(--warning); }
+        .score.low { color: var(--danger); }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .stats-summary {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .stats-summary span {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 768px) {
+            .search-filter-bar {
+                flex-direction: column;
+            }
+
+            .search-box {
+                min-width: 100%;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">⚙️ Compliance Toolkit</div>
+            <nav class="nav">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/clients" class="active">Clients</a>
+                <a href="/policies">Policies</a>
+                <a href="/settings">Settings</a>
+                <a href="/about">About</a>
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">🌓</button>
+                <button class="logout-btn" onclick="logout()" title="Logout">Logout</button>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">💻 All Clients</h1>
+            <button class="refresh-btn" onclick="loadClients()">
+                🔄 Refresh
+            </button>
+        </div>
+
+        <div class="section">
+            <!-- Stats Summary -->
+            <div class="stats-summary" id="stats-summary">
+                <div>Total: <span id="total-count">-</span></div>
+                <div>Active (24h): <span id="active-count">-</span></div>
+                <div>Compliant: <span id="compliant-count">-</span></div>
+                <div>Non-Compliant: <span id="noncompliant-count">-</span></div>
+            </div>
+
+            <!-- Search and Filters -->
+            <div class="search-filter-bar">
+                <input type="text"
+                       class="search-box"
+                       id="search-box"
+                       placeholder="Search by hostname, client ID, IP address..."
+                       oninput="filterClients()">
+
+                <select class="filter-select" id="status-filter" onchange="filterClients()">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="offline">Offline</option>
+                </select>
+
+                <select class="filter-select" id="compliance-filter" onchange="filterClients()">
+                    <option value="">All Compliance</option>
+                    <option value="compliant">Compliant (≥80%)</option>
+                    <option value="partial">Partial (50-79%)</option>
+                    <option value="noncompliant">Non-Compliant (&lt;50%)</option>
+                </select>
+            </div>
+
+            <!-- Clients Table -->
+            <div id="clients-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Loading clients...</div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination" style="display: none;">
+                <button class="page-btn" id="prev-btn" onclick="prevPage()">← Previous</button>
+                <div id="page-numbers"></div>
+                <button class="page-btn" id="next-btn" onclick="nextPage()">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allClients = [];
+        let filteredClients = [];
+        let currentPage = 1;
+        const itemsPerPage = 20;
+        let sortColumn = 'last_seen';
+        let sortDirection = 'desc';
+
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/api/v1/auth/logout', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Logout failed. Please try again.');
+            }
+        }
+
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+
+        // Format relative time
+        function formatRelativeTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (days > 0) return `${days}d ago`;
+            if (hours > 0) return `${hours}h ago`;
+            if (minutes > 0) return `${minutes}m ago`;
+            return 'Just now';
+        }
+
+        // Get status badge
+        function getStatusBadge(status) {
+            const statusMap = {
+                'compliant': 'success',
+                'non-compliant': 'danger',
+                'partial': 'warning',
+                'active': 'success',
+                'inactive': 'warning',
+                'offline': 'danger',
+                'unknown': 'info'
+            };
+            const variant = statusMap[status] || 'info';
+            return `<span class="badge ${variant}">${status}</span>`;
+        }
+
+        // Get score class
+        function getScoreClass(score) {
+            if (score >= 80) return 'high';
+            if (score >= 50) return 'medium';
+            return 'low';
+        }
+
+        // Load all clients
+        async function loadClients() {
+            const container = document.getElementById('clients-container');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading clients...</div></div>';
+
+            try {
+                const response = await fetch('/api/v1/clients', {
+                    headers: {
+                        'Authorization': 'Bearer demo-key-67890'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load clients');
+                }
+
+                allClients = await response.json();
+                filteredClients = [...allClients];
+                updateStats();
+                filterClients();
+
+            } catch (error) {
+                console.error('Failed to load clients:', error);
+                container.innerHTML = '<div class="empty-state">❌ Failed to load clients</div>';
+            }
+        }
+
+        // Update stats summary
+        function updateStats() {
+            const now = new Date();
+            const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
+
+            const activeCount = allClients.filter(c => new Date(c.last_seen) > oneDayAgo).length;
+            const compliantCount = allClients.filter(c => (c.compliance_score || 0) >= 80).length;
+            const noncompliantCount = allClients.filter(c => (c.compliance_score || 0) < 50).length;
+
+            document.getElementById('total-count').textContent = allClients.length;
+            document.getElementById('active-count').textContent = activeCount;
+            document.getElementById('compliant-count').textContent = compliantCount;
+            document.getElementById('noncompliant-count').textContent = noncompliantCount;
+        }
+
+        // Filter clients
+        function filterClients() {
+            const searchTerm = document.getElementById('search-box').value.toLowerCase();
+            const statusFilter = document.getElementById('status-filter').value;
+            const complianceFilter = document.getElementById('compliance-filter').value;
+
+            filteredClients = allClients.filter(client => {
+                // Search filter
+                const matchesSearch = !searchTerm ||
+                    (client.hostname || '').toLowerCase().includes(searchTerm) ||
+                    (client.client_id || '').toLowerCase().includes(searchTerm) ||
+                    (client.system_info?.ip_address || '').toLowerCase().includes(searchTerm) ||
+                    (client.system_info?.mac_address || '').toLowerCase().includes(searchTerm);
+
+                // Status filter
+                const matchesStatus = !statusFilter || client.status === statusFilter;
+
+                // Compliance filter
+                let matchesCompliance = true;
+                if (complianceFilter) {
+                    const score = client.compliance_score || 0;
+                    if (complianceFilter === 'compliant') matchesCompliance = score >= 80;
+                    else if (complianceFilter === 'partial') matchesCompliance = score >= 50 && score < 80;
+                    else if (complianceFilter === 'noncompliant') matchesCompliance = score < 50;
+                }
+
+                return matchesSearch && matchesStatus && matchesCompliance;
+            });
+
+            currentPage = 1;
+            sortClients();
+            renderClients();
+        }
+
+        // Sort clients
+        function sortClients() {
+            filteredClients.sort((a, b) => {
+                let aVal, bVal;
+
+                if (sortColumn === 'hostname') {
+                    aVal = (a.hostname || '').toLowerCase();
+                    bVal = (b.hostname || '').toLowerCase();
+                } else if (sortColumn === 'compliance') {
+                    aVal = a.compliance_score || 0;
+                    bVal = b.compliance_score || 0;
+                } else if (sortColumn === 'last_seen') {
+                    aVal = new Date(a.last_seen);
+                    bVal = new Date(b.last_seen);
+                } else if (sortColumn === 'status') {
+                    aVal = a.status || '';
+                    bVal = b.status || '';
+                }
+
+                if (sortDirection === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+        }
+
+        // Sort by column
+        function sortBy(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'desc';
+            }
+            sortClients();
+            renderClients();
+        }
+
+        // Render clients table
+        function renderClients() {
+            const container = document.getElementById('clients-container');
+
+            if (filteredClients.length === 0) {
+                container.innerHTML = '<div class="empty-state">📭 No clients found matching your filters</div>';
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+
+            // Pagination
+            const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
+            const startIdx = (currentPage - 1) * itemsPerPage;
+            const endIdx = startIdx + itemsPerPage;
+            const pageClients = filteredClients.slice(startIdx, endIdx);
+
+            const html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="sortable ${sortColumn === 'hostname' ? 'sorted-' + sortDirection : ''}"
+                                onclick="sortBy('hostname')">Hostname</th>
+                            <th>OS / Build</th>
+                            <th>Network</th>
+                            <th class="sortable ${sortColumn === 'status' ? 'sorted-' + sortDirection : ''}"
+                                onclick="sortBy('status')">Status</th>
+                            <th class="sortable ${sortColumn === 'compliance' ? 'sorted-' + sortDirection : ''}"
+                                onclick="sortBy('compliance')">Compliance</th>
+                            <th class="sortable ${sortColumn === 'last_seen' ? 'sorted-' + sortDirection : ''}"
+                                onclick="sortBy('last_seen')">Last Seen</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${pageClients.map(client => `
+                            <tr>
+                                <td><strong>${client.hostname || 'Unknown'}</strong><br>
+                                    <span class="timestamp">${client.client_id}</span>
+                                </td>
+                                <td>${client.system_info?.os_version || 'N/A'}<br>
+                                    <span class="timestamp">Build ${client.system_info?.build_number || 'N/A'}</span>
+                                </td>
+                                <td>${client.system_info?.ip_address || 'N/A'}<br>
+                                    <span class="timestamp">${client.system_info?.mac_address || 'N/A'}</span>
+                                </td>
+                                <td>${getStatusBadge(client.status || 'active')}</td>
+                                <td><span class="score ${getScoreClass(client.compliance_score || 0)}">
+                                    ${Math.round(client.compliance_score || 0)}%
+                                </span></td>
+                                <td class="timestamp">${formatRelativeTime(client.last_seen)}<br>
+                                    ${formatTimestamp(client.last_seen)}
+                                </td>
+                                <td>
+                                    <a href="/client-detail?client_id=${encodeURIComponent(client.client_id)}"
+                                       style="color: var(--primary); text-decoration: none; font-weight: 500;">
+                                        View Details →
+                                    </a>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+            renderPagination(totalPages);
+        }
+
+        // Render pagination
+        function renderPagination(totalPages) {
+            const pagination = document.getElementById('pagination');
+
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+
+            pagination.style.display = 'flex';
+
+            document.getElementById('prev-btn').disabled = currentPage === 1;
+            document.getElementById('next-btn').disabled = currentPage === totalPages;
+
+            const pageNumbers = document.getElementById('page-numbers');
+            let html = '';
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}"
+                                     onclick="goToPage(${i})">${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    html += '<span style="padding: 0 8px;">...</span>';
+                }
+            }
+
+            pageNumbers.innerHTML = html;
+        }
+
+        // Pagination functions
+        function nextPage() {
+            currentPage++;
+            renderClients();
+        }
+
+        function prevPage() {
+            currentPage--;
+            renderClients();
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            renderClients();
+        }
+
+        // Initial load
+        loadClients();
+    </script>
+</body>
+</html>
