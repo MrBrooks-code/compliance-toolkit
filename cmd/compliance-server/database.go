@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	_ "modernc.org/sqlite"
 
@@ -208,7 +209,7 @@ func (d *Database) SaveSubmission(submission *api.ComplianceSubmission) error {
 		submission.SubmissionID,
 		submission.ClientID,
 		submission.Hostname,
-		submission.Timestamp,
+		submission.Timestamp.Format(time.RFC3339),
 		submission.ReportType,
 		submission.ReportVersion,
 		submission.Compliance.OverallStatus,
@@ -241,12 +242,13 @@ func (d *Database) GetSubmission(submissionID string) (*api.ComplianceSubmission
 
 	var submission api.ComplianceSubmission
 	var complianceData, evidence, systemInfo string
+	var timestampStr string
 
 	err := d.db.QueryRow(query, submissionID).Scan(
 		&submission.SubmissionID,
 		&submission.ClientID,
 		&submission.Hostname,
-		&submission.Timestamp,
+		&timestampStr,
 		&submission.ReportType,
 		&submission.ReportVersion,
 		&complianceData,
@@ -259,6 +261,12 @@ func (d *Database) GetSubmission(submissionID string) (*api.ComplianceSubmission
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to query submission: %w", err)
+	}
+
+	// Parse timestamp from string
+	submission.Timestamp, err = time.Parse(time.RFC3339, timestampStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse timestamp: %w", err)
 	}
 
 	// Unmarshal JSON fields
@@ -480,11 +488,12 @@ func (d *Database) GetDashboardSummary() (*api.DashboardSummary, error) {
 
 	for rows.Next() {
 		var sub api.SubmissionSummary
+		var timestampStr string
 		err := rows.Scan(
 			&sub.SubmissionID,
 			&sub.ClientID,
 			&sub.Hostname,
-			&sub.Timestamp,
+			&timestampStr,
 			&sub.ReportType,
 			&sub.OverallStatus,
 			&sub.PassedChecks,
@@ -493,6 +502,13 @@ func (d *Database) GetDashboardSummary() (*api.DashboardSummary, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan submission: %w", err)
 		}
+
+		// Parse timestamp from string
+		sub.Timestamp, err = time.Parse(time.RFC3339, timestampStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse timestamp: %w", err)
+		}
+
 		summary.RecentSubmissions = append(summary.RecentSubmissions, sub)
 	}
 
@@ -622,11 +638,12 @@ func (d *Database) GetClientSubmissions(clientID string) ([]api.SubmissionSummar
 	var submissions []api.SubmissionSummary
 	for rows.Next() {
 		var sub api.SubmissionSummary
+		var timestampStr string
 		err := rows.Scan(
 			&sub.SubmissionID,
 			&sub.ClientID,
 			&sub.Hostname,
-			&sub.Timestamp,
+			&timestampStr,
 			&sub.ReportType,
 			&sub.OverallStatus,
 			&sub.TotalChecks,
@@ -636,6 +653,13 @@ func (d *Database) GetClientSubmissions(clientID string) ([]api.SubmissionSummar
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan submission: %w", err)
 		}
+
+		// Parse timestamp from string
+		sub.Timestamp, err = time.Parse(time.RFC3339, timestampStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse timestamp: %w", err)
+		}
+
 		submissions = append(submissions, sub)
 	}
 
