@@ -426,11 +426,13 @@ cmd/compliance-server/
 ```
 GET    /                       - Redirect to dashboard
 GET    /dashboard              - Main dashboard
-GET    /clients                - Client list
+GET    /clients                - Client list (full list with pagination, search, filters)
 GET    /clients/:id            - Client details
 GET    /submissions/:id        - Submission details
 GET    /search                 - Search interface
 ```
+
+**Note**: Dashboard shows "Recent Clients" (5-10 most recent by last check-in). Full client list available at `/clients` page with pagination, search, and filtering capabilities.
 
 **Acceptance Criteria**:
 - ✅ Dashboard loads in <2 seconds

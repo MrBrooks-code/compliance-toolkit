@@ -329,6 +329,7 @@
             <div class="logo">⚙️ Compliance Toolkit</div>
             <nav class="nav">
                 <a href="/dashboard" class="active">Dashboard</a>
+                <a href="/clients">Clients</a>
                 <a href="/policies">Policies</a>
                 <a href="/settings">Settings</a>
                 <a href="/about">About</a>
@@ -379,10 +380,13 @@
             </div>
         </div>
 
-        <!-- Registered Clients -->
+        <!-- Recent Clients -->
         <div class="section">
             <div class="section-title">
-                <span>💻 Registered Clients</span>
+                <span>💻 Recent Clients</span>
+                <a href="/clients" style="color: var(--primary); text-decoration: none; font-weight: 500; font-size: 14px;">
+                    View All Clients →
+                </a>
             </div>
             <div id="clients-container">
                 <div class="loading">
@@ -547,7 +551,7 @@
             container.innerHTML = html;
         }
 
-        // Load and render clients
+        // Load and render clients (recent 10 only)
         async function loadClients() {
             const container = document.getElementById('clients-container');
 
@@ -562,12 +566,17 @@
                     throw new Error('Failed to load clients');
                 }
 
-                const clients = await response.json();
+                const allClients = await response.json();
 
-                if (clients.length === 0) {
+                if (allClients.length === 0) {
                     container.innerHTML = '<div class="empty-state">💻 No clients registered yet</div>';
                     return;
                 }
+
+                // Sort by last_seen (most recent first) and take top 10
+                const clients = allClients
+                    .sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen))
+                    .slice(0, 10);
 
                 const html = `
                     <table>

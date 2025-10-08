@@ -106,6 +106,7 @@ func (s *ComplianceServer) registerRoutes() {
 	// Dashboard (if enabled)
 	if s.config.Dashboard.Enabled {
 		s.mux.HandleFunc(s.config.Dashboard.Path, s.requireAuth(s.handleDashboard))
+		s.mux.HandleFunc("/clients", s.requireAuth(s.handleClientsPage))
 		s.mux.HandleFunc("/settings", s.requireAuth(s.handleSettings))
 		s.mux.HandleFunc("/policies", s.requireAuth(s.handlePoliciesPage))
 		s.mux.HandleFunc("/about", s.requireAuth(s.handleAboutPage))
@@ -548,6 +549,20 @@ func (s *ComplianceServer) handleDashboard(w http.ResponseWriter, r *http.Reques
 	w.Write(html)
 }
 
+// handleClientsPage serves the clients page
+func (s *ComplianceServer) handleClientsPage(w http.ResponseWriter, r *http.Request) {
+	// Read clients HTML file
+	html, err := os.ReadFile("clients.html")
+	if err != nil {
+		s.logger.Error("Failed to read clients.html", "error", err)
+		http.Error(w, "Clients page not available", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(html)
+}
+
 // handleSettings serves the settings page
 func (s *ComplianceServer) handleSettings(w http.ResponseWriter, r *http.Request) {
 	// Read settings HTML file
@@ -555,6 +570,20 @@ func (s *ComplianceServer) handleSettings(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		s.logger.Error("Failed to read settings.html", "error", err)
 		http.Error(w, "Settings not available", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(html)
+}
+
+// handleAboutPage serves the about page
+func (s *ComplianceServer) handleAboutPage(w http.ResponseWriter, r *http.Request) {
+	// Read about HTML file
+	html, err := os.ReadFile("about.html")
+	if err != nil {
+		s.logger.Error("Failed to read about.html", "error", err)
+		http.Error(w, "About page not available", http.StatusInternalServerError)
 		return
 	}
 
