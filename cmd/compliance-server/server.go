@@ -1509,7 +1509,7 @@ func (s *ComplianceServer) handleImportPolicies(w http.ResponseWriter, r *http.R
 	}
 
 	// Look for report files in configs/reports directory
-	reportsDir := "../../configs/reports"
+	reportsDir := "configs/reports"
 	files, err := filepath.Glob(filepath.Join(reportsDir, "*.json"))
 	if err != nil {
 		s.logger.Error("Failed to list report files", "error", err)

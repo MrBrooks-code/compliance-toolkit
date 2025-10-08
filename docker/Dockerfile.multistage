@@ -40,6 +40,9 @@ COPY --from=builder /build/compliance-server .
 # Copy HTML templates (needed for serving web pages)
 COPY --from=builder /build/cmd/compliance-server/*.html .
 
+# Copy configs directory (for policy import)
+COPY --from=builder /build/configs ./configs
+
 # Copy entrypoint script from docker directory
 COPY --from=builder /build/docker/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \

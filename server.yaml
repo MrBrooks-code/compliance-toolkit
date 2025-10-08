@@ -3,7 +3,7 @@
 # HTTP/HTTPS server settings
 server:
   host: "0.0.0.0"       # Bind to all interfaces
-  port: 8443            # HTTP port (TLS disabled for testing)
+  port: 8080            # HTTP port (TLS disabled for testing)
   tls:
     enabled: false
     cert_file: "certs/server.crt"
