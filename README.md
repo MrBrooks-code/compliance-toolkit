@@ -5,18 +5,18 @@
 
 Welcome to the Compliance Toolkit! A comprehensive Windows registry compliance scanner with **server/client architecture** and **web dashboard**.
 
-## 🏗️ Architecture
+## Architecture
 
 The Compliance Toolkit now includes two deployment modes:
 
-### 🖥️ Standalone Mode (Original)
+### Standalone Mode (Original)
 Single executable for local compliance scanning and HTML report generation.
 
 ```bash
 go build -ldflags="-s -w" -o ComplianceToolkit.exe ./cmd/toolkit.go
 ```
 
-### 🌐 Server/Client Mode (New!)
+### Server/Client Mode (New!)
 Centralized compliance monitoring with web dashboard.
 
 **Server:**
@@ -36,40 +36,37 @@ go build -o compliance-client.exe .
 **Web Dashboard:** `http://localhost:8443/dashboard`
 
 ---
-
-## 📚 Documentation Index
-
-### 🚀 Getting Started
+### Getting Started
 
 1. **[Quick Start Guide](docs/user-guide/QUICKSTART.md)** - Get up and running in 5 minutes
 2. **[Installation Guide](docs/user-guide/INSTALLATION.md)** - Complete installation instructions
 3. **[User Guide](docs/user-guide/USER_GUIDE.md)** - Interactive mode usage
 
-### 🌐 Server/Client Mode (New!)
+### Server/Client Mode (New!)
 
 - **[Unit Testing Guide](docs/testing/UNIT_TESTING_GUIDE.md)** - Complete testing procedures for server/client
 - **[Client Detail Page](docs/project/CLIENT_DETAIL_PAGE.md)** - Client drill-down documentation
 - **[Settings Page Enhancements](docs/project/SETTINGS_PAGE_ENHANCEMENTS.md)** - API key management
 
-### 💻 Command Line Interface
+### Command Line Interface
 
 4. **[CLI Quick Start](docs/user-guide/CLI_QUICKSTART.md)** - 5-minute CLI setup
 5. **[CLI Usage Guide](docs/user-guide/CLI_USAGE.md)** - Complete CLI reference
 6. **[Automation Examples](docs/user-guide/AUTOMATION.md)** - Scheduled tasks and scripts
 
-### 📊 Reports & Compliance
+### Reports & Compliance
 
 7. **[Available Reports](docs/reference/REPORTS.md)** - All compliance reports
 8. **[Evidence Logging](docs/reference/EVIDENCE.md)** - Audit trail documentation
 9. **[Executive Reports](docs/reference/EXECUTIVE.md)** - C-level reporting features
 
-### 🔧 Advanced Usage
+### Advanced Usage
 
 10. **[Adding New Reports](docs/developer-guide/ADDING_REPORTS.md)** - Create custom reports
 11. **[Template System](docs/developer-guide/TEMPLATES.md)** - HTML template customization
 12. **[Configuration Reference](docs/reference/CONFIG.md)** - JSON configuration format
 
-### 👨‍💻 Developer Resources
+### Developer Resources
 
 13. **[Architecture Overview](docs/developer-guide/ARCHITECTURE.md)** - Codebase structure
 14. **[Development Guide](docs/developer-guide/DEVELOPMENT.md)** - Building and contributing
@@ -78,7 +75,7 @@ go build -o compliance-client.exe .
 
 ---
 
-## 🎯 Quick Links
+## Quick Links
 
 ### For End Users:
 - **First time?** → [Quick Start Guide](docs/user-guide/QUICKSTART.md)
@@ -97,7 +94,7 @@ go build -o compliance-client.exe .
 
 ---
 
-## 📖 What is Compliance Toolkit?
+## What is Compliance Toolkit?
 
 The Compliance Toolkit is a comprehensive Windows registry compliance scanner with:
 
@@ -124,9 +121,9 @@ The Compliance Toolkit is a comprehensive Windows registry compliance scanner wi
 
 ---
 
-## 🏃 Quick Start
+## Quick Start
 
-### 🐳 Docker Deployment (Recommended)
+### Docker Deployment (Recommended)
 
 The fastest way to get started is using Docker:
 
@@ -190,7 +187,7 @@ ComplianceToolkit.exe -report=all -quiet
 
 ---
 
-### 🌐 Server/Client Mode (Manual Deployment)
+### Server/Client Mode (Manual Deployment)
 
 **1. Start Server:**
 ```bash
@@ -208,19 +205,9 @@ cd cmd/compliance-server
 http://localhost:8443/dashboard
 ```
 
-**Features available in dashboard:**
-- 📊 **Dashboard** - Real-time stats, recent submissions, registered clients
-- 💻 **Clients** - Full client list with search, filtering, and pagination
-- 📋 **Policies** - Import and manage compliance policies
-- ⚙️ **Settings** - Manage users, API keys, server configuration
-- ℹ️ **About** - Project info and GitHub repository link
-- 🌓 **Theme Toggle** - Switch between light/dark mode
-
-**Testing:** See [Unit Testing Guide](docs/testing/UNIT_TESTING_GUIDE.md) for complete testing procedures.
-
 ---
 
-## 📁 Documentation Structure
+## Documentation Structure
 
 ```
 docs/
@@ -247,7 +234,7 @@ docs/
 
 ---
 
-## 🆘 Getting Help
+## Getting Help
 
 ### Common Issues
 
@@ -270,7 +257,7 @@ docs/
 
 ---
 
-## 🔄 Updates & Versions
+## Updates & Versions
 
 **Current Version:** 1.1.0
 
@@ -296,7 +283,7 @@ docs/
 - ✅ Dark mode improvements
 - ✅ Search functionality
 
-## 🎯 Roadmap
+## Roadmap
 
 **Completed (Phase 3.1):**
 - ✅ Client Detail Page (#2)
@@ -312,7 +299,7 @@ See [Future Enhancements](docs/project/FUTURE_ENHANCEMENTS.md) for complete road
 
 ---
 
-## 📸 Screenshots
+## Interface
 
 ### Login Page
 <p align="center">
