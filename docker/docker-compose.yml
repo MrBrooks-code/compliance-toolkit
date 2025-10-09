@@ -1,6 +1,24 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: compliance-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-compliance}
+      - POSTGRES_USER=${POSTGRES_USER:-compliance}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-compliance_secure_password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - compliance-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-compliance}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   compliance-server:
     build:
       context: ..
@@ -8,6 +26,9 @@ services:
     image: compliance-server:latest
     container_name: compliance-server
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
 
     # Environment variables (override with .env file)
     environment:
@@ -16,13 +37,32 @@ services:
       - TLS_ENABLED=${TLS_ENABLED:-false}
       - TLS_CERT_FILE=${TLS_CERT_FILE:-certs/server.crt}
       - TLS_KEY_FILE=${TLS_KEY_FILE:-certs/server.key}
-      - DB_TYPE=${DB_TYPE:-sqlite}
-      - DB_PATH=${DB_PATH:-data/compliance.db}
+      - DB_TYPE=${DB_TYPE:-postgres}
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-compliance}
+      - DB_USER=${DB_USER:-compliance}
+      - DB_PASSWORD=${DB_PASSWORD:-compliance_secure_password}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+
+      # Authentication - SECURITY CRITICAL
       - AUTH_ENABLED=${AUTH_ENABLED:-true}
-      - AUTH_REQUIRE_KEY=${AUTH_REQUIRE_KEY:-false}
+      - AUTH_REQUIRE_KEY=${AUTH_REQUIRE_KEY:-true}  # ⚠️ ENFORCES AUTHENTICATION
+
+      # JWT Authentication
+      - JWT_ENABLED=${JWT_ENABLED:-true}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
+      - JWT_ACCESS_TOKEN_LIFETIME=${JWT_ACCESS_TOKEN_LIFETIME:-15}
+      - JWT_REFRESH_TOKEN_LIFETIME=${JWT_REFRESH_TOKEN_LIFETIME:-7}
+      - JWT_ISSUER=${JWT_ISSUER:-ComplianceToolkit}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-ComplianceToolkit}
+
+      # Dashboard
       - DASHBOARD_ENABLED=${DASHBOARD_ENABLED:-true}
       - DASHBOARD_PATH=${DASHBOARD_PATH:-/dashboard}
       - DASHBOARD_LOGIN_MESSAGE=${DASHBOARD_LOGIN_MESSAGE:-Access is restricted to authorized personel only}
+
+      # Logging
       - LOGGING_LEVEL=${LOGGING_LEVEL:-info}
       - LOGGING_FORMAT=${LOGGING_FORMAT:-json}
       - LOGGING_OUTPUT=${LOGGING_OUTPUT:-stdout}
@@ -77,8 +117,10 @@ services:
     networks:
       - compliance-network
 
-# Named volume for database (alternative to bind mount)
+# Named volumes
 volumes:
+  postgres-data:
+    driver: local
   compliance-data:
     driver: local
 

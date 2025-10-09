@@ -31,21 +31,30 @@ type TLSSettings struct {
 	KeyFile  string `mapstructure:"key_file"`
 }
 
-// DatabaseSettings contains database configuration
+// DatabaseSettings contains database configuration (PostgreSQL only)
 type DatabaseSettings struct {
-	Type string `mapstructure:"type"` // sqlite, postgres (future)
-	Path string `mapstructure:"path"` // For SQLite
-	DSN  string `mapstructure:"dsn"`  // For other databases (future)
+	Type     string `mapstructure:"type"`     // postgres (SQLite support removed)
+	Host     string `mapstructure:"host"`     // PostgreSQL host
+	Port     int    `mapstructure:"port"`     // PostgreSQL port
+	Name     string `mapstructure:"name"`     // Database name
+	User     string `mapstructure:"user"`     // Database user
+	Password string `mapstructure:"password"` // Database password
+	SSLMode  string `mapstructure:"sslmode"`  // SSL mode (disable, require, verify-ca, verify-full)
 }
 
 // AuthSettings contains authentication configuration
 type AuthSettings struct {
 	Enabled       bool     `mapstructure:"enabled"`
-	APIKeys       []string `mapstructure:"api_keys"`        // Plain text keys (legacy)
-	APIKeyHashes  []string `mapstructure:"api_key_hashes"`  // Bcrypt hashed keys (recommended)
-	RequireKey    bool     `mapstructure:"require_key"`
-	UseHashedKeys bool     `mapstructure:"use_hashed_keys"` // Whether to use hashed keys
-	JWT           JWTAuthSettings `mapstructure:"jwt"`         // JWT authentication settings
+
+	// DEPRECATED: Static API keys in configuration will be removed in v2.0
+	// Use database-backed API keys via /api/v1/apikeys instead
+	// Security issues: no auditing, no rotation, easily leaked in version control
+	APIKeys       []string `mapstructure:"api_keys"`        // DEPRECATED - Plain text keys (DO NOT USE)
+	APIKeyHashes  []string `mapstructure:"api_key_hashes"`  // DEPRECATED - Bcrypt hashed keys (DO NOT USE)
+	UseHashedKeys bool     `mapstructure:"use_hashed_keys"` // DEPRECATED - Whether to use hashed keys
+
+	RequireKey    bool     `mapstructure:"require_key"`     // Set to true to enforce authentication
+	JWT           JWTAuthSettings `mapstructure:"jwt"`       // JWT authentication settings
 }
 
 // JWTAuthSettings contains JWT-specific authentication configuration
@@ -112,9 +121,14 @@ func setConfigDefaults(v *viper.Viper) {
 	v.SetDefault("server.tls.cert_file", "certs/server.crt")
 	v.SetDefault("server.tls.key_file", "certs/server.key")
 
-	// Database defaults
-	v.SetDefault("database.type", "sqlite")
-	v.SetDefault("database.path", "data/compliance.db")
+	// Database defaults (PostgreSQL only)
+	v.SetDefault("database.type", "postgres")
+	v.SetDefault("database.host", "localhost")
+	v.SetDefault("database.port", 5432)
+	v.SetDefault("database.name", "compliance")
+	v.SetDefault("database.user", "compliance")
+	v.SetDefault("database.password", "compliance")
+	v.SetDefault("database.sslmode", "disable")
 
 	// Auth defaults
 	v.SetDefault("auth.enabled", true)
@@ -124,12 +138,12 @@ func setConfigDefaults(v *viper.Viper) {
 	v.SetDefault("auth.use_hashed_keys", false) // Default to false for backwards compatibility
 
 	// JWT defaults
-	v.SetDefault("auth.jwt.enabled", false) // Disabled by default until migration complete
+	v.SetDefault("auth.jwt.enabled", true) // Enabled by default (migration complete)
 	v.SetDefault("auth.jwt.secret_key", "") // Auto-generated on first run if empty
 	v.SetDefault("auth.jwt.access_token_lifetime", 15) // 15 minutes
 	v.SetDefault("auth.jwt.refresh_token_lifetime", 7) // 7 days
-	v.SetDefault("auth.jwt.issuer", "compliance-toolkit")
-	v.SetDefault("auth.jwt.audience", "compliance-api")
+	v.SetDefault("auth.jwt.issuer", "ComplianceToolkit")
+	v.SetDefault("auth.jwt.audience", "ComplianceToolkit")
 
 	// Dashboard defaults
 	v.SetDefault("dashboard.enabled", true)
@@ -168,17 +182,31 @@ func (c *ServerConfig) Validate() error {
 		}
 	}
 
-	// Validate database settings
-	if c.Database.Type == "" {
-		return fmt.Errorf("database type is required")
+	// Validate database settings (PostgreSQL only)
+	if c.Database.Type != "postgres" {
+		return fmt.Errorf("database type must be 'postgres' (SQLite support removed)")
 	}
-	if c.Database.Type == "sqlite" && c.Database.Path == "" {
-		return fmt.Errorf("database path is required for SQLite")
+	if c.Database.Host == "" {
+		return fmt.Errorf("database host is required")
+	}
+	if c.Database.Name == "" {
+		return fmt.Errorf("database name is required")
+	}
+	if c.Database.User == "" {
+		return fmt.Errorf("database user is required")
 	}
 
 	// Validate auth settings
-	if c.Auth.Enabled && c.Auth.RequireKey && len(c.Auth.APIKeys) == 0 {
-		return fmt.Errorf("auth enabled with require_key but no API keys configured")
+	// NOTE: Static API keys (c.Auth.APIKeys) are DEPRECATED
+	// With JWT enabled, users can log in and create database-backed API keys
+	// Only fail if auth is required but BOTH static keys AND JWT are disabled
+	if c.Auth.Enabled && c.Auth.RequireKey {
+		hasStaticKeys := len(c.Auth.APIKeys) > 0 || len(c.Auth.APIKeyHashes) > 0
+		hasJWT := c.Auth.JWT.Enabled
+
+		if !hasStaticKeys && !hasJWT {
+			return fmt.Errorf("auth enabled with require_key but neither static API keys nor JWT authentication is configured")
+		}
 	}
 
 	return nil
@@ -205,34 +233,35 @@ func generateDefaultConfig(configPath string) error {
 # HTTP/HTTPS server settings
 server:
   host: "0.0.0.0"       # Bind to all interfaces
-  port: 8443            # HTTPS port
+  port: 8080            # HTTP port (use 8443 for HTTPS)
   tls:
-    enabled: true
+    enabled: false      # Set to true for HTTPS
     cert_file: "certs/server.crt"
     key_file: "certs/server.key"
 
-# Database configuration
+# Database configuration (PostgreSQL only)
 database:
-  type: "sqlite"        # Currently only SQLite supported
-  path: "data/compliance.db"
-  # dsn: ""             # For future PostgreSQL support
+  type: "postgres"
+  host: "localhost"
+  port: 5432
+  name: "compliance"
+  user: "compliance"
+  password: "compliance"
+  sslmode: "disable"    # disable, require, verify-ca, verify-full
 
 # Authentication settings
 auth:
   enabled: true
   require_key: true
-  api_keys:
-    - "your-api-key-here"
-    # - "another-api-key"
 
-  # JWT authentication (modern, recommended)
+  # JWT authentication (recommended)
   jwt:
-    enabled: false           # Set to true to enable JWT authentication
-    secret_key: ""           # Auto-generated on first run if empty
+    enabled: true        # JWT enabled by default
+    secret_key: ""       # Auto-generated on first run if empty
     access_token_lifetime: 15   # Access token lifetime in minutes
     refresh_token_lifetime: 7   # Refresh token lifetime in days
-    issuer: "compliance-toolkit"
-    audience: "compliance-api"
+    issuer: "ComplianceToolkit"
+    audience: "ComplianceToolkit"
 
 # Web dashboard
 dashboard:

@@ -459,11 +459,11 @@
             </div>
             <div class="setting-row">
                 <div class="setting-label">
-                    <h3>Database Path</h3>
-                    <p>Location of database file</p>
+                    <h3>Database Connection</h3>
+                    <p>PostgreSQL connection details</p>
                 </div>
                 <div class="setting-value">
-                    <code id="db-path">Loading...</code>
+                    <code id="db-connection">Loading...</code>
                 </div>
             </div>
             <div class="setting-row">
@@ -555,38 +555,6 @@
 
             <div id="clients-table">
                 <p style="text-align: center; color: var(--text-secondary);">Loading clients...</p>
-            </div>
-        </div>
-
-        <!-- Database Management -->
-        <div class="section">
-            <div class="section-title">💾 Database Management</div>
-            <div class="setting-row">
-                <div class="setting-label">
-                    <h3>Database Size</h3>
-                    <p>Current database file size</p>
-                </div>
-                <div class="setting-value">
-                    <span class="stat-badge">~500 KB</span>
-                </div>
-            </div>
-            <div class="setting-row">
-                <div class="setting-label">
-                    <h3>Total Submissions</h3>
-                    <p>Number of stored compliance reports</p>
-                </div>
-                <div class="setting-value">
-                    <span class="stat-badge" id="total-submissions">-</span>
-                </div>
-            </div>
-            <div class="setting-row">
-                <div class="setting-label">
-                    <h3>Backup Database</h3>
-                    <p>Create a backup of the current database</p>
-                </div>
-                <div class="setting-value">
-                    <button class="btn-secondary" onclick="backupDatabase()">💾 Create Backup</button>
-                </div>
             </div>
         </div>
 
@@ -776,7 +744,8 @@
 
                 // Database info
                 document.getElementById('db-type').textContent = config.database.type.toUpperCase();
-                document.getElementById('db-path').textContent = config.database.path;
+                const dbConnection = `${config.database.host}:${config.database.port}/${config.database.name}`;
+                document.getElementById('db-connection').textContent = dbConnection;
 
                 // Auth status
                 const authStatus = document.getElementById('auth-status');
@@ -1041,12 +1010,6 @@
 
                 document.getElementById('clients-table').innerHTML = html;
 
-                // Update submission count
-                const summaryResponse = await fetch('/api/v1/dashboard/summary');
-                const summary = await summaryResponse.json();
-                document.getElementById('total-submissions').textContent =
-                    (summary.recent_submissions || []).length + '+';
-
             } catch (error) {
                 console.error('Failed to load clients:', error);
                 document.getElementById('clients-table').innerHTML =
@@ -1059,10 +1022,6 @@
         }
 
         // Database functions
-        function backupDatabase() {
-            showAlert('Backup feature: Copy data/compliance.db to a safe location manually.');
-        }
-
         async function confirmClearSubmissions() {
             if (confirm('Are you sure you want to delete ALL submissions?\n\nThis action cannot be undone.\n\nClients will remain registered.')) {
                 try {
@@ -1101,7 +1060,7 @@
         function confirmResetDatabase() {
             const confirmation = prompt('Type "RESET DATABASE" to confirm complete database reset:');
             if (confirmation === 'RESET DATABASE') {
-                showAlert('Reset feature coming soon. Manual: Delete data/compliance.db and restart server.', 'error');
+                showAlert('Reset PostgreSQL: DROP DATABASE compliance; CREATE DATABASE compliance; then restart server.', 'error');
             }
         }
 
