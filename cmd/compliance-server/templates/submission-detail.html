@@ -442,6 +442,21 @@
             color: var(--text-secondary);
         }
 
+        pre {
+            white-space: pre-wrap;       /* Preserve formatting but allow wrapping */
+            word-wrap: break-word;       /* Break long words */
+            overflow-wrap: break-word;   /* Modern version of word-wrap */
+            max-width: 100%;             /* Don't exceed container */
+            overflow-x: auto;            /* Add scrollbar if still needed */
+            background: var(--bg-primary);
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 8px 0;
+        }
+
         .filter-controls {
             display: flex;
             gap: 12px;
