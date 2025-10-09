@@ -116,6 +116,7 @@ func (s *ComplianceServer) registerRoutes() {
 	}
 
 	// Submission endpoints
+	s.mux.HandleFunc("/api/v1/submissions/clear-all", s.authMiddleware(s.handleClearAllSubmissions))
 	s.mux.HandleFunc("/api/v1/submissions/", s.authMiddleware(s.handleSubmissionDetail))
 
 	// Client management endpoints
@@ -1372,6 +1373,31 @@ func (s *ComplianceServer) handleClearClientHistory(w http.ResponseWriter, r *ht
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":        "success",
 		"message":       fmt.Sprintf("Cleared %d submissions for client %s", deletedCount, clientID),
+		"deleted_count": deletedCount,
+	})
+}
+
+// handleClearAllSubmissions clears all submission history from all clients
+func (s *ComplianceServer) handleClearAllSubmissions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Clear all submissions
+	deletedCount, err := s.db.ClearAllSubmissions()
+	if err != nil {
+		s.logger.Error("Failed to clear all submissions", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Failed to clear all submissions")
+		return
+	}
+
+	s.logger.Info("All submissions cleared", "deleted_count", deletedCount)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":        "success",
+		"message":       fmt.Sprintf("Cleared %d submissions from all clients", deletedCount),
 		"deleted_count": deletedCount,
 	})
 }
