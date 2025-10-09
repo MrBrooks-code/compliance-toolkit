@@ -271,6 +271,9 @@
         </div>
     </div>
 
+    <!-- JWT Auth Client -->
+    <script src="/static/js/auth.js"></script>
+
     <script>
         // Theme management
         function initTheme() {
@@ -287,6 +290,23 @@
 
         // Initialize theme on load
         initTheme();
+
+        // Check if already logged in (JWT or session)
+        function checkAuth() {
+            // Check JWT authentication
+            if (window.authClient && window.authClient.isAuthenticated()) {
+                window.location.href = '/dashboard';
+                return;
+            }
+            // Check session cookie authentication
+            const sessionCookie = document.cookie.split('; ').find(row => row.startsWith('session_user='));
+            if (sessionCookie) {
+                window.location.href = '/dashboard';
+            }
+        }
+
+        // Check auth on load
+        checkAuth();
 
         // Load login message
         async function loadLoginMessage() {
@@ -308,7 +328,7 @@
         // Load login message on page load
         loadLoginMessage();
 
-        // Login handler
+        // Login handler with JWT support
         async function handleLogin(event) {
             event.preventDefault();
 
@@ -332,32 +352,26 @@
             loginBtn.textContent = 'Signing in...';
 
             try {
-                const response = await fetch('/api/v1/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({ username, password })
-                });
+                // Try JWT authentication first
+                const result = await window.authClient.login(username, password);
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Login successful
-                    console.log('Login successful');
+                if (result.success) {
+                    console.log('JWT login successful', result.user);
 
                     // Redirect to dashboard
                     window.location.href = '/dashboard';
                 } else {
-                    // Login failed
-                    showError(data.error || 'Invalid username or password');
+                    showError('Invalid username or password');
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Sign In';
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showError('Unable to connect to server. Please try again.');
+
+                // Extract error message
+                const errorMessage = error.message || 'Unable to connect to server. Please try again.';
+                showError(errorMessage);
+
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Sign In';
             }

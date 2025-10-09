@@ -14,16 +14,22 @@ import (
 	"time"
 
 	"compliancetoolkit/pkg/api"
+	"compliancetoolkit/pkg/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // ComplianceServer is the main server instance
 type ComplianceServer struct {
-	config     *ServerConfig
-	logger     *slog.Logger
-	httpServer *http.Server
-	db         *Database
-	mux        *http.ServeMux
+	config       *ServerConfig
+	logger       *slog.Logger
+	httpServer   *http.Server
+	db           *Database
+	mux          *http.ServeMux
+
+	// JWT authentication components
+	jwtConfig    *auth.JWTConfig
+	jwtHandlers  *auth.AuthHandlers
+	jwtMiddleware *auth.Middleware
 }
 
 // NewComplianceServer creates a new server instance
@@ -41,6 +47,11 @@ func NewComplianceServer(config *ServerConfig, logger *slog.Logger) (*Compliance
 		mux:    http.NewServeMux(),
 	}
 
+	// Initialize JWT authentication if enabled
+	if err := server.initializeJWT(); err != nil {
+		logger.Warn("Failed to initialize JWT authentication", "error", err)
+	}
+
 	// Create initial admin user if no users exist
 	if err := server.ensureAdminUser(); err != nil {
 		logger.Warn("Failed to create initial admin user", "error", err)
@@ -48,6 +59,9 @@ func NewComplianceServer(config *ServerConfig, logger *slog.Logger) (*Compliance
 
 	// Register routes
 	server.registerRoutes()
+
+	// Start cleanup tasks
+	server.startCleanupTasks()
 
 	return server, nil
 }
@@ -143,6 +157,12 @@ func (s *ComplianceServer) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/policies/import", s.authMiddleware(s.handleImportPolicies))
 	s.mux.HandleFunc("/api/v1/policies/", s.authMiddleware(s.handlePolicyDetail))
 	s.mux.HandleFunc("/api/v1/policies", s.authMiddleware(s.handlePolicies))
+
+	// JWT authentication endpoints (if enabled)
+	s.registerJWTRoutes()
+
+	// Static files (for JWT auth client and other assets)
+	s.mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	// Root handler
 	s.mux.HandleFunc("/", s.handleRoot)
@@ -623,7 +643,7 @@ func (s *ComplianceServer) handleDashboardSummary(w http.ResponseWriter, r *http
 	json.NewEncoder(w).Encode(summary)
 }
 
-// authMiddleware checks API key authentication
+// authMiddleware checks authentication (supports session cookies, JWT tokens, and API keys)
 func (s *ComplianceServer) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Skip auth if disabled
@@ -632,7 +652,7 @@ func (s *ComplianceServer) authMiddleware(next http.HandlerFunc) http.HandlerFun
 			return
 		}
 
-		// Check for session authentication first (username/password login)
+		// 1. Check for session authentication first (username/password login)
 		if sessionCookie, err := r.Cookie("session_user"); err == nil && sessionCookie.Value != "" {
 			// Verify session is valid
 			if _, err := s.db.GetUser(sessionCookie.Value); err == nil {
@@ -642,7 +662,30 @@ func (s *ComplianceServer) authMiddleware(next http.HandlerFunc) http.HandlerFun
 			}
 		}
 
-		// Fall back to API key authentication
+		// 2. Check for JWT authentication (if enabled)
+		if s.config.Auth.JWT.Enabled && s.jwtMiddleware != nil {
+			authHeader := r.Header.Get("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				// Attempt JWT authentication
+				token := strings.TrimPrefix(authHeader, "Bearer ")
+				if token != "" {
+					// Validate JWT token
+					claims, err := s.jwtConfig.ValidateAccessToken(token)
+					if err == nil {
+						// Check if token is blacklisted
+						blacklistMgr := auth.NewBlacklistManager(s.db.db)
+						isBlacklisted, blErr := blacklistMgr.IsTokenBlacklisted(r.Context(), claims.ID)
+						if blErr == nil && !isBlacklisted {
+							// Valid JWT token, allow access
+							next(w, r)
+							return
+						}
+					}
+				}
+			}
+		}
+
+		// 3. Fall back to API key authentication
 		var apiKey string
 
 		// Try to get API key from cookie (for dashboard/web UI)
@@ -650,12 +693,13 @@ func (s *ComplianceServer) authMiddleware(next http.HandlerFunc) http.HandlerFun
 			apiKey = cookie.Value
 		} else {
 			// Fall back to Authorization header (for API clients)
+			// Note: JWT Bearer tokens already handled above
 			apiKey = r.Header.Get("Authorization")
 			if apiKey == "" {
 				s.sendError(w, http.StatusUnauthorized, "Authentication required")
 				return
 			}
-			// Remove "Bearer " prefix if present
+			// Remove "Bearer " prefix if present (for API keys with Bearer prefix)
 			apiKey = strings.TrimPrefix(apiKey, "Bearer ")
 		}
 
@@ -663,8 +707,8 @@ func (s *ComplianceServer) authMiddleware(next http.HandlerFunc) http.HandlerFun
 		valid := s.validateAPIKey(apiKey)
 
 		if !valid {
-			s.logger.Warn("Invalid API key", "remote_addr", r.RemoteAddr)
-			s.sendError(w, http.StatusUnauthorized, "Invalid API key")
+			s.logger.Warn("Invalid authentication", "remote_addr", r.RemoteAddr)
+			s.sendError(w, http.StatusUnauthorized, "Invalid authentication credentials")
 			return
 		}
 
