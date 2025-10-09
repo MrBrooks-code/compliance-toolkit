@@ -114,7 +114,7 @@ The Compliance Toolkit is a comprehensive Windows registry compliance scanner wi
 - ✅ **Settings management** with live API key control
 - ✅ **Dark/light theme** support
 - ✅ **Cookie-based authentication** (secure, no exposed tokens)
-- ✅ **SQLite database** with automatic schema management
+- ✅ **Postgres database** 
 - ✅ **Auto-refresh dashboard** (30-second intervals)
 - ✅ **Export functionality** (JSON downloads)
 - ✅ **Compliance trend charts** (Chart.js visualization)
@@ -136,7 +136,7 @@ cd compliance-toolkit
 docker-compose up -d
 
 # Access the web dashboard
-http://localhost:8080
+http://localhost:8080/login
 ```
 
 **Default credentials:**
