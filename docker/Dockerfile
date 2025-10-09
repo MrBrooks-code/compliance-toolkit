@@ -20,8 +20,11 @@ WORKDIR /app
 COPY docker/bin/compliance-server .
 RUN chmod +x compliance-server
 
-# Copy HTML templates from source
-COPY cmd/compliance-server/*.html .
+# Copy HTML templates from new templates directory
+COPY cmd/compliance-server/templates ./templates
+
+# Copy static assets (JavaScript, CSS)
+COPY static ./static
 
 # Copy entrypoint script
 COPY docker/docker-entrypoint.sh /usr/local/bin/
@@ -38,5 +41,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:${SERVER_PORT:-8080}/ || exit 1
 
 # Set entrypoint
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["./compliance-server"]

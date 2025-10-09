@@ -21,7 +21,7 @@ func NewBlacklistManager(db *sql.DB) *BlacklistManager {
 func (m *BlacklistManager) BlacklistToken(ctx context.Context, jti string, userID int, expiresAt time.Time, reason string) error {
 	query := `
 		INSERT INTO jwt_blacklist (jti, user_id, expires_at, reason)
-		VALUES (?, ?, ?, ?)
+		VALUES ($1, $2, $3, $4)
 	`
 
 	_, err := m.db.ExecContext(ctx, query, jti, userID, expiresAt, reason)
@@ -36,7 +36,7 @@ func (m *BlacklistManager) BlacklistToken(ctx context.Context, jti string, userI
 func (m *BlacklistManager) IsTokenBlacklisted(ctx context.Context, jti string) (bool, error) {
 	query := `
 		SELECT COUNT(*) FROM jwt_blacklist
-		WHERE jti = ? AND expires_at > ?
+		WHERE jti = $1 AND expires_at > $2
 	`
 
 	var count int
@@ -52,7 +52,7 @@ func (m *BlacklistManager) IsTokenBlacklisted(ctx context.Context, jti string) (
 func (m *BlacklistManager) CleanupExpiredEntries(ctx context.Context) (int64, error) {
 	query := `
 		DELETE FROM jwt_blacklist
-		WHERE expires_at < ?
+		WHERE expires_at < $1
 	`
 
 	result, err := m.db.ExecContext(ctx, query, time.Now())
@@ -76,9 +76,9 @@ func (m *BlacklistManager) BlacklistAllUserTokens(ctx context.Context, userID in
 
 	query := `
 		INSERT INTO jwt_blacklist (jti, user_id, expires_at, reason)
-		SELECT DISTINCT jti, user_id, expires_at, ?
+		SELECT DISTINCT jti, user_id, expires_at, $1
 		FROM (
-			SELECT ? as jti, ? as user_id, datetime('now', '+1 hour') as expires_at
+			SELECT $2 as jti, $3 as user_id, NOW() + INTERVAL '1 hour' as expires_at
 		)
 	`
 

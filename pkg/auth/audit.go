@@ -71,7 +71,7 @@ func (a *AuditLogger) Log(ctx context.Context, event AuditEvent) error {
 		INSERT INTO auth_audit_log (
 			user_id, username, event_type, auth_method,
 			ip_address, user_agent, success, failure_reason, metadata
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 
 	var userIDVal interface{}
@@ -187,9 +187,9 @@ func (a *AuditLogger) GetUserAuditLog(ctx context.Context, userID int, limit int
 		SELECT id, user_id, username, event_type, auth_method,
 		       ip_address, user_agent, success, failure_reason, timestamp, metadata
 		FROM auth_audit_log
-		WHERE user_id = ?
+		WHERE user_id = $1
 		ORDER BY timestamp DESC
-		LIMIT ?
+		LIMIT $2
 	`
 
 	rows, err := a.db.QueryContext(ctx, query, userID, limit)
@@ -205,7 +205,7 @@ func (a *AuditLogger) GetUserAuditLog(ctx context.Context, userID int, limit int
 func (a *AuditLogger) GetRecentFailedLogins(ctx context.Context, username string, since time.Time) (int, error) {
 	query := `
 		SELECT COUNT(*) FROM auth_audit_log
-		WHERE username = ? AND event_type = ? AND success = 0 AND timestamp > ?
+		WHERE username = $1 AND event_type = $2 AND success = false AND timestamp > $3
 	`
 
 	var count int
@@ -223,9 +223,9 @@ func (a *AuditLogger) GetAuditLogByTimeRange(ctx context.Context, start, end tim
 		SELECT id, user_id, username, event_type, auth_method,
 		       ip_address, user_agent, success, failure_reason, timestamp, metadata
 		FROM auth_audit_log
-		WHERE timestamp BETWEEN ? AND ?
+		WHERE timestamp BETWEEN $1 AND $2
 		ORDER BY timestamp DESC
-		LIMIT ?
+		LIMIT $3
 	`
 
 	rows, err := a.db.QueryContext(ctx, query, start, end, limit)
@@ -289,7 +289,7 @@ func (a *AuditLogger) scanAuditLogEntries(rows *sql.Rows) ([]AuditLogEntry, erro
 func (a *AuditLogger) CleanupOldEntries(ctx context.Context, olderThan time.Duration) (int64, error) {
 	query := `
 		DELETE FROM auth_audit_log
-		WHERE timestamp < ?
+		WHERE timestamp < $1
 	`
 
 	cutoffTime := time.Now().Add(-olderThan)

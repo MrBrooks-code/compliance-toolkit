@@ -341,7 +341,7 @@ func (h *AuthHandlers) getUserByUsername(ctx context.Context, username string) (
 		SELECT id, username, password_hash, role, jwt_version,
 		       password_changed_at, failed_login_attempts, account_locked_until
 		FROM users
-		WHERE username = ?
+		WHERE username = $1
 	`
 
 	var user DBUser
@@ -381,7 +381,7 @@ func (h *AuthHandlers) getUserByID(ctx context.Context, userID int) (*DBUser, er
 		SELECT id, username, password_hash, role, jwt_version,
 		       password_changed_at, failed_login_attempts, account_locked_until
 		FROM users
-		WHERE id = ?
+		WHERE id = $1
 	`
 
 	var user DBUser
@@ -419,10 +419,10 @@ func (h *AuthHandlers) incrementFailedLoginAttempts(ctx context.Context, userID 
 		UPDATE users
 		SET failed_login_attempts = failed_login_attempts + 1,
 		    account_locked_until = CASE
-		        WHEN failed_login_attempts >= 4 THEN datetime('now', '+30 minutes')
+		        WHEN failed_login_attempts >= 4 THEN NOW() + INTERVAL '30 minutes'
 		        ELSE account_locked_until
 		    END
-		WHERE id = ?
+		WHERE id = $1
 	`
 
 	_, err := h.db.ExecContext(ctx, query, userID)
@@ -430,13 +430,13 @@ func (h *AuthHandlers) incrementFailedLoginAttempts(ctx context.Context, userID 
 }
 
 func (h *AuthHandlers) resetFailedLoginAttempts(ctx context.Context, userID int) error {
-	query := "UPDATE users SET failed_login_attempts = 0, account_locked_until = NULL WHERE id = ?"
+	query := "UPDATE users SET failed_login_attempts = 0, account_locked_until = NULL WHERE id = $1"
 	_, err := h.db.ExecContext(ctx, query, userID)
 	return err
 }
 
 func (h *AuthHandlers) updatePasswordChangedAt(ctx context.Context, userID int, changedAt time.Time) error {
-	query := "UPDATE users SET password_changed_at = ? WHERE id = ?"
+	query := "UPDATE users SET password_changed_at = $1 WHERE id = $2"
 	_, err := h.db.ExecContext(ctx, query, changedAt, userID)
 	return err
 }

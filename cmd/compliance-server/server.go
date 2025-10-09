@@ -18,6 +18,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	// templatesDir is the directory containing HTML templates
+	templatesDir = "templates"
+)
+
 // ComplianceServer is the main server instance
 type ComplianceServer struct {
 	config       *ServerConfig
@@ -229,7 +234,7 @@ func (s *ComplianceServer) Shutdown() error {
 
 // handleLoginPage serves the login page
 func (s *ComplianceServer) handleLoginPage(w http.ResponseWriter, r *http.Request) {
-	html, err := os.ReadFile("login.html")
+	html, err := os.ReadFile(filepath.Join(templatesDir, "login.html"))
 	if err != nil {
 		s.logger.Error("Failed to read login.html", "error", err)
 		http.Error(w, "Login page not available", http.StatusInternalServerError)
@@ -560,7 +565,7 @@ func (s *ComplianceServer) handleListClients(w http.ResponseWriter, r *http.Requ
 // handleDashboard serves the web dashboard
 func (s *ComplianceServer) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	// Read dashboard HTML file
-	html, err := os.ReadFile("dashboard.html")
+	html, err := os.ReadFile(filepath.Join(templatesDir, "dashboard.html"))
 	if err != nil {
 		s.logger.Error("Failed to read dashboard.html", "error", err)
 		http.Error(w, "Dashboard not available", http.StatusInternalServerError)
@@ -574,7 +579,7 @@ func (s *ComplianceServer) handleDashboard(w http.ResponseWriter, r *http.Reques
 // handleClientsPage serves the clients page
 func (s *ComplianceServer) handleClientsPage(w http.ResponseWriter, r *http.Request) {
 	// Read clients HTML file
-	html, err := os.ReadFile("clients.html")
+	html, err := os.ReadFile(filepath.Join(templatesDir, "clients.html"))
 	if err != nil {
 		s.logger.Error("Failed to read clients.html", "error", err)
 		http.Error(w, "Clients page not available", http.StatusInternalServerError)
@@ -588,7 +593,7 @@ func (s *ComplianceServer) handleClientsPage(w http.ResponseWriter, r *http.Requ
 // handleSettings serves the settings page
 func (s *ComplianceServer) handleSettings(w http.ResponseWriter, r *http.Request) {
 	// Read settings HTML file
-	html, err := os.ReadFile("settings.html")
+	html, err := os.ReadFile(filepath.Join(templatesDir, "settings.html"))
 	if err != nil {
 		s.logger.Error("Failed to read settings.html", "error", err)
 		http.Error(w, "Settings not available", http.StatusInternalServerError)
@@ -602,7 +607,7 @@ func (s *ComplianceServer) handleSettings(w http.ResponseWriter, r *http.Request
 // handleAboutPage serves the about page
 func (s *ComplianceServer) handleAboutPage(w http.ResponseWriter, r *http.Request) {
 	// Read about HTML file
-	html, err := os.ReadFile("about.html")
+	html, err := os.ReadFile(filepath.Join(templatesDir, "about.html"))
 	if err != nil {
 		s.logger.Error("Failed to read about.html", "error", err)
 		http.Error(w, "About page not available", http.StatusInternalServerError)
@@ -615,7 +620,7 @@ func (s *ComplianceServer) handleAboutPage(w http.ResponseWriter, r *http.Reques
 
 func (s *ComplianceServer) handlePoliciesPage(w http.ResponseWriter, r *http.Request) {
 	// Read policies HTML file
-	html, err := os.ReadFile("policies.html")
+	html, err := os.ReadFile(filepath.Join(templatesDir, "policies.html"))
 	if err != nil {
 		s.logger.Error("Failed to read policies.html", "error", err)
 		http.Error(w, "Policies page not available", http.StatusInternalServerError)
@@ -1290,7 +1295,7 @@ func (s *ComplianceServer) handleClientSubmissions(w http.ResponseWriter, r *htt
 // handleClientDetailPage serves the client detail HTML page
 func (s *ComplianceServer) handleClientDetailPage(w http.ResponseWriter, r *http.Request) {
 	// Read client detail HTML file
-	html, err := os.ReadFile("client-detail.html")
+	html, err := os.ReadFile(filepath.Join(templatesDir, "client-detail.html"))
 	if err != nil {
 		s.logger.Error("Failed to read client-detail.html", "error", err)
 		http.Error(w, "Client detail page not available", http.StatusInternalServerError)
@@ -1387,7 +1392,7 @@ func (s *ComplianceServer) handleSubmissionDetail(w http.ResponseWriter, r *http
 // handleSubmissionDetailPage serves the submission detail HTML page
 func (s *ComplianceServer) handleSubmissionDetailPage(w http.ResponseWriter, r *http.Request) {
 	// Read submission detail HTML file
-	html, err := os.ReadFile("submission-detail.html")
+	html, err := os.ReadFile(filepath.Join(templatesDir, "submission-detail.html"))
 	if err != nil {
 		s.logger.Error("Failed to read submission-detail.html", "error", err)
 		http.Error(w, "Submission detail page not available", http.StatusInternalServerError)

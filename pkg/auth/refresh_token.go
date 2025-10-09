@@ -64,7 +64,7 @@ func (m *RefreshTokenManager) StoreRefreshToken(ctx context.Context, userID int,
 		INSERT INTO refresh_tokens (
 			id, user_id, token_hash, token_family, expires_at,
 			user_agent, ip_address, device_fingerprint
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	_, err = m.db.ExecContext(ctx, query,
@@ -99,7 +99,7 @@ func (m *RefreshTokenManager) ValidateRefreshToken(ctx context.Context, token st
 		       last_used, revoked, revoked_at, revoked_reason,
 		       user_agent, ip_address, device_fingerprint
 		FROM refresh_tokens
-		WHERE user_id = ? AND token_family = ? AND revoked = 0
+		WHERE user_id = $1 AND token_family = $2 AND revoked = false
 		ORDER BY created_at DESC
 	`
 
@@ -141,7 +141,7 @@ func (m *RefreshTokenManager) ValidateRefreshToken(ctx context.Context, token st
 		tokenHash := hex.EncodeToString(hasher.Sum(nil))
 		if rt.TokenHash == tokenHash {
 			// Token matches! Update last_used timestamp
-			_, err = m.db.ExecContext(ctx, "UPDATE refresh_tokens SET last_used = ? WHERE id = ?", time.Now(), rt.ID)
+			_, err = m.db.ExecContext(ctx, "UPDATE refresh_tokens SET last_used = $1 WHERE id = $2", time.Now(), rt.ID)
 			if err != nil {
 				// Non-fatal, just log
 				fmt.Printf("Warning: failed to update last_used timestamp: %v\n", err)
@@ -168,8 +168,8 @@ func (m *RefreshTokenManager) ValidateRefreshToken(ctx context.Context, token st
 func (m *RefreshTokenManager) RevokeRefreshToken(ctx context.Context, tokenID string, reason string) error {
 	query := `
 		UPDATE refresh_tokens
-		SET revoked = 1, revoked_at = ?, revoked_reason = ?
-		WHERE id = ?
+		SET revoked = true, revoked_at = $1, revoked_reason = $2
+		WHERE id = $3
 	`
 
 	result, err := m.db.ExecContext(ctx, query, time.Now(), reason, tokenID)
@@ -193,8 +193,8 @@ func (m *RefreshTokenManager) RevokeRefreshToken(ctx context.Context, tokenID st
 func (m *RefreshTokenManager) RevokeTokenFamily(ctx context.Context, userID int, tokenFamily string, reason string) error {
 	query := `
 		UPDATE refresh_tokens
-		SET revoked = 1, revoked_at = ?, revoked_reason = ?
-		WHERE user_id = ? AND token_family = ? AND revoked = 0
+		SET revoked = true, revoked_at = $1, revoked_reason = $2
+		WHERE user_id = $3 AND token_family = $4 AND revoked = false
 	`
 
 	_, err := m.db.ExecContext(ctx, query, time.Now(), reason, userID, tokenFamily)
@@ -209,8 +209,8 @@ func (m *RefreshTokenManager) RevokeTokenFamily(ctx context.Context, userID int,
 func (m *RefreshTokenManager) RevokeAllUserTokens(ctx context.Context, userID int, reason string) error {
 	query := `
 		UPDATE refresh_tokens
-		SET revoked = 1, revoked_at = ?, revoked_reason = ?
-		WHERE user_id = ? AND revoked = 0
+		SET revoked = true, revoked_at = $1, revoked_reason = $2
+		WHERE user_id = $3 AND revoked = false
 	`
 
 	_, err := m.db.ExecContext(ctx, query, time.Now(), reason, userID)
@@ -225,7 +225,7 @@ func (m *RefreshTokenManager) RevokeAllUserTokens(ctx context.Context, userID in
 func (m *RefreshTokenManager) CleanupExpiredTokens(ctx context.Context) (int64, error) {
 	query := `
 		DELETE FROM refresh_tokens
-		WHERE expires_at < ? OR (revoked = 1 AND revoked_at < ?)
+		WHERE expires_at < $1 OR (revoked = true AND revoked_at < $2)
 	`
 
 	// Delete tokens that expired more than 30 days ago or were revoked more than 30 days ago
@@ -286,7 +286,7 @@ func (m *RefreshTokenManager) GetUserActiveTokens(ctx context.Context, userID in
 		       last_used, revoked, revoked_at, revoked_reason,
 		       user_agent, ip_address, device_fingerprint
 		FROM refresh_tokens
-		WHERE user_id = ? AND revoked = 0 AND expires_at > ?
+		WHERE user_id = $1 AND revoked = false AND expires_at > $2
 		ORDER BY created_at DESC
 	`
 
