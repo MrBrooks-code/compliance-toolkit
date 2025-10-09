@@ -1,7 +1,7 @@
 # Compliance Toolkit Documentation
 
 **Version:** 1.1.0
-**Last Updated:** 2025-10-08
+**Last Updated:** 2025-10-09
 
 Welcome to the Compliance Toolkit! A comprehensive Windows registry compliance scanner with **server/client architecture** and **web dashboard**.
 
@@ -101,7 +101,7 @@ The Compliance Toolkit is a comprehensive Windows registry compliance scanner wi
 ### Standalone Features
 - ✅ Scans Windows registry for compliance violations
 - ✅ Generates professional HTML reports with charts
-- ✅ Supports NIST 800-171 and FIPS 140-2 frameworks
+- ✅ Supports NIST 800-171 and FIPS 140-2 frameworks as well as custom JSON baselines
 - ✅ Creates JSON evidence logs for audits
 - ✅ Runs interactively or via command line
 - ✅ Perfect for scheduled compliance scans
@@ -112,7 +112,6 @@ The Compliance Toolkit is a comprehensive Windows registry compliance scanner wi
 - ✅ **Client detail pages** with compliance history
 - ✅ **Submission detail pages** with full check results
 - ✅ **Settings management** with live API key control
-- ✅ **Dark/light theme** support
 - ✅ **Cookie-based authentication** (secure, no exposed tokens)
 - ✅ **Postgres database** 
 - ✅ **Auto-refresh dashboard** (30-second intervals)
@@ -145,8 +144,8 @@ http://localhost:8080/login
 
 **What you get:**
 - ✅ Web dashboard at `http://localhost:8080`
+- ✅ JWT Authentication
 - ✅ RESTful API for compliance submissions
-- ✅ SQLite database with persistent storage
 - ✅ Automatic container restart on failure
 
 **Useful commands:**
@@ -382,4 +381,4 @@ See [Future Enhancements](docs/project/FUTURE_ENHANCEMENTS.md) for complete road
 ---
 
 *Documentation Version: 1.2*
-*Last Updated: 2025-10-08*
+*Last Updated: 2025-10-09*
