@@ -684,6 +684,24 @@ func (d *Database) ClearClientHistory(clientID string) (int64, error) {
 	return rowsAffected, nil
 }
 
+// ClearAllSubmissions deletes all submissions from all clients (keeps clients registered)
+func (d *Database) ClearAllSubmissions() (int64, error) {
+	query := `DELETE FROM submissions`
+
+	result, err := d.db.Exec(query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to clear all submissions: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	d.logger.Info("Cleared all submissions", "submissions_deleted", rowsAffected)
+	return rowsAffected, nil
+}
+
 // Policy represents a compliance policy
 type Policy struct {
 	ID          int    `json:"id"`
