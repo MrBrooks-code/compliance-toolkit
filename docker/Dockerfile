@@ -23,6 +23,10 @@ RUN chmod +x compliance-server
 # Copy HTML templates from source
 COPY cmd/compliance-server/*.html .
 
+# Copy JWT test page and static files
+COPY jwt-test.html .
+COPY static/ ./static/
+
 # Copy entrypoint script
 COPY docker/docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

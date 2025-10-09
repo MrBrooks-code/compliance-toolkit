@@ -20,6 +20,12 @@ services:
       - DB_PATH=${DB_PATH:-data/compliance.db}
       - AUTH_ENABLED=${AUTH_ENABLED:-true}
       - AUTH_REQUIRE_KEY=${AUTH_REQUIRE_KEY:-false}
+      - JWT_ENABLED=${JWT_ENABLED:-true}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
+      - JWT_ACCESS_TOKEN_LIFETIME=${JWT_ACCESS_TOKEN_LIFETIME:-15}
+      - JWT_REFRESH_TOKEN_LIFETIME=${JWT_REFRESH_TOKEN_LIFETIME:-7}
+      - JWT_ISSUER=${JWT_ISSUER:-ComplianceToolkit}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-ComplianceToolkit}
       - DASHBOARD_ENABLED=${DASHBOARD_ENABLED:-true}
       - DASHBOARD_PATH=${DASHBOARD_PATH:-/dashboard}
       - DASHBOARD_LOGIN_MESSAGE=${DASHBOARD_LOGIN_MESSAGE:-Access is restricted to authorized personel only}

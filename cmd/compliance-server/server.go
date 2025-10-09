@@ -109,6 +109,7 @@ func (s *ComplianceServer) registerRoutes() {
 
 	// Authentication endpoints
 	s.mux.HandleFunc("/login", s.handleLoginPage)
+	s.mux.HandleFunc("/jwt-test.html", s.handleJWTTestPage)
 	s.mux.HandleFunc("/api/v1/auth/login", s.handleLogin)
 	s.mux.HandleFunc("/api/v1/auth/logout", s.handleLogout)
 	s.mux.HandleFunc("/api/v1/auth/session", s.handleGetSession)
@@ -233,6 +234,19 @@ func (s *ComplianceServer) handleLoginPage(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		s.logger.Error("Failed to read login.html", "error", err)
 		http.Error(w, "Login page not available", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(html)
+}
+
+// handleJWTTestPage serves the JWT test page
+func (s *ComplianceServer) handleJWTTestPage(w http.ResponseWriter, r *http.Request) {
+	html, err := os.ReadFile("jwt-test.html")
+	if err != nil {
+		s.logger.Error("Failed to read jwt-test.html", "error", err)
+		http.Error(w, "JWT test page not available", http.StatusInternalServerError)
 		return
 	}
 

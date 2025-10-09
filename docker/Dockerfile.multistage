@@ -40,6 +40,10 @@ COPY --from=builder /build/compliance-server .
 # Copy HTML templates (needed for serving web pages)
 COPY --from=builder /build/cmd/compliance-server/*.html .
 
+# Copy JWT test page and static files (JS, CSS, etc.)
+COPY --from=builder /build/jwt-test.html .
+COPY --from=builder /build/static ./static
+
 # Copy configs directory (for policy import)
 COPY --from=builder /build/configs ./configs
 
