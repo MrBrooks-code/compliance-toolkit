@@ -5,35 +5,35 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
+	"strings"
 	"time"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/lib/pq"
 
 	"compliancetoolkit/pkg/api"
 )
 
-// Database handles all database operations
+// Database handles all database operations (PostgreSQL only)
 type Database struct {
 	db     *sql.DB
 	logger *slog.Logger
 }
 
-// NewDatabase creates and initializes a new database connection
+// NewDatabase creates and initializes a new PostgreSQL database connection
 func NewDatabase(config DatabaseSettings, logger *slog.Logger) (*Database, error) {
-	if config.Type != "sqlite" {
-		return nil, fmt.Errorf("unsupported database type: %s (only sqlite supported)", config.Type)
-	}
-
-	// Ensure directory exists
-	dir := filepath.Dir(config.Path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create database directory: %w", err)
-	}
+	// Build PostgreSQL connection string
+	connString := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		config.Host,
+		config.Port,
+		config.User,
+		config.Password,
+		config.Name,
+		config.SSLMode,
+	)
 
 	// Open database
-	db, err := sql.Open("sqlite", config.Path)
+	db, err := sql.Open("postgres", connString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -42,6 +42,11 @@ func NewDatabase(config DatabaseSettings, logger *slog.Logger) (*Database, error
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
+
+	// Configure connection pool for PostgreSQL
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
 
 	database := &Database{
 		db:     db,
@@ -53,16 +58,48 @@ func NewDatabase(config DatabaseSettings, logger *slog.Logger) (*Database, error
 		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
-	logger.Info("Database initialized", "path", config.Path)
+	logger.Info("Database initialized", "type", "postgres", "host", config.Host, "database", config.Name)
 	return database, nil
+}
+
+// getAutoIncrementType returns PostgreSQL auto-increment syntax
+func (d *Database) getAutoIncrementType() string {
+	return "SERIAL PRIMARY KEY"
+}
+
+// getPartialIndexSQL returns PostgreSQL partial index SQL for refresh_tokens.revoked
+func (d *Database) getPartialIndexSQL() string {
+	return "CREATE INDEX IF NOT EXISTS idx_refresh_tokens_revoked ON refresh_tokens(revoked) WHERE revoked = false;"
+}
+
+// placeholder returns PostgreSQL positional placeholder ($1, $2, $3...)
+func (d *Database) placeholder(n int) string {
+	return fmt.Sprintf("$%d", n)
+}
+
+// getBooleanDefault returns PostgreSQL boolean literal (true/false)
+func (d *Database) getBooleanDefault(value bool) string {
+	if value {
+		return "true"
+	}
+	return "false"
+}
+
+// getDateTimeSubtract returns PostgreSQL datetime subtraction SQL
+func (d *Database) getDateTimeSubtract(hours int) string {
+	return fmt.Sprintf("CURRENT_TIMESTAMP - INTERVAL '%d hours'", hours)
 }
 
 // initSchema creates database tables if they don't exist
 func (d *Database) initSchema() error {
-	schema := `
+	autoIncrement := d.getAutoIncrementType()
+	boolTrue := d.getBooleanDefault(true)
+	boolFalse := d.getBooleanDefault(false)
+
+	schema := fmt.Sprintf(`
 	-- Clients table
 	CREATE TABLE IF NOT EXISTS clients (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id %s,
 		client_id TEXT UNIQUE NOT NULL,
 		hostname TEXT NOT NULL,
 		first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -79,7 +116,7 @@ func (d *Database) initSchema() error {
 
 	-- Submissions table
 	CREATE TABLE IF NOT EXISTS submissions (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id %s,
 		submission_id TEXT UNIQUE NOT NULL,
 		client_id TEXT NOT NULL,
 		hostname TEXT NOT NULL,
@@ -101,7 +138,7 @@ func (d *Database) initSchema() error {
 
 	-- Policies table
 	CREATE TABLE IF NOT EXISTS policies (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id %s,
 		policy_id TEXT UNIQUE NOT NULL,
 		name TEXT NOT NULL,
 		description TEXT,
@@ -117,7 +154,7 @@ func (d *Database) initSchema() error {
 
 	-- Client policy assignments (for future use)
 	CREATE TABLE IF NOT EXISTS client_policies (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id %s,
 		client_id TEXT NOT NULL,
 		policy_id TEXT NOT NULL,
 		assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -129,7 +166,7 @@ func (d *Database) initSchema() error {
 
 	-- Users table for authentication
 	CREATE TABLE IF NOT EXISTS users (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id %s,
 		username TEXT UNIQUE NOT NULL,
 		password_hash TEXT NOT NULL,
 		role TEXT NOT NULL CHECK(role IN ('admin', 'viewer', 'auditor')),
@@ -139,7 +176,7 @@ func (d *Database) initSchema() error {
 
 	-- API Keys table for secure key management
 	CREATE TABLE IF NOT EXISTS api_keys (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id %s,
 		name TEXT NOT NULL,
 		key_hash TEXT NOT NULL,
 		key_prefix TEXT NOT NULL,  -- First 8 chars for display
@@ -147,7 +184,7 @@ func (d *Database) initSchema() error {
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		last_used TIMESTAMP,
 		expires_at TIMESTAMP,
-		is_active BOOLEAN DEFAULT 1
+		is_active BOOLEAN DEFAULT %s
 	);
 
 	-- Indexes for performance
@@ -172,7 +209,7 @@ func (d *Database) initSchema() error {
 		expires_at TIMESTAMP NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		last_used TIMESTAMP,
-		revoked BOOLEAN DEFAULT 0,
+		revoked BOOLEAN DEFAULT %s,
 		revoked_at TIMESTAMP,
 		revoked_reason TEXT,
 		user_agent TEXT,
@@ -193,7 +230,7 @@ func (d *Database) initSchema() error {
 
 	-- Auth audit log for security monitoring
 	CREATE TABLE IF NOT EXISTS auth_audit_log (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id %s,
 		user_id INTEGER,
 		username TEXT,
 		event_type TEXT NOT NULL,
@@ -209,14 +246,15 @@ func (d *Database) initSchema() error {
 	-- JWT-specific indexes
 	CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 	CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
-	CREATE INDEX IF NOT EXISTS idx_refresh_tokens_revoked ON refresh_tokens(revoked) WHERE revoked = 0;
+	%s
 	CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_family ON refresh_tokens(token_family);
 	CREATE INDEX IF NOT EXISTS idx_jwt_blacklist_expires_at ON jwt_blacklist(expires_at);
 	CREATE INDEX IF NOT EXISTS idx_jwt_blacklist_user_id ON jwt_blacklist(user_id);
 	CREATE INDEX IF NOT EXISTS idx_auth_audit_log_user_id ON auth_audit_log(user_id);
 	CREATE INDEX IF NOT EXISTS idx_auth_audit_log_timestamp ON auth_audit_log(timestamp);
 	CREATE INDEX IF NOT EXISTS idx_auth_audit_log_event_type ON auth_audit_log(event_type);
-	`
+	`, autoIncrement, autoIncrement, autoIncrement, autoIncrement, autoIncrement, autoIncrement, boolTrue, boolFalse, autoIncrement,
+		d.getPartialIndexSQL())
 
 	if _, err := d.db.Exec(schema); err != nil {
 		return fmt.Errorf("failed to create schema: %w", err)
@@ -228,7 +266,7 @@ func (d *Database) initSchema() error {
 		"ALTER TABLE users ADD COLUMN password_changed_at TIMESTAMP",
 		"ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0",
 		"ALTER TABLE users ADD COLUMN account_locked_until TIMESTAMP",
-		"ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT 0",
+		fmt.Sprintf("ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT %s", boolFalse),
 		"ALTER TABLE users ADD COLUMN mfa_secret TEXT",
 	}
 
@@ -246,15 +284,14 @@ func (d *Database) initSchema() error {
 	return nil
 }
 
-// isColumnExistsError checks if the error is due to a column already existing
+// isColumnExistsError checks if the error is due to a column already existing in PostgreSQL
 func isColumnExistsError(err error) bool {
-	return err != nil && (
-		fmt.Sprint(err) == "duplicate column name: jwt_version" ||
-		fmt.Sprint(err) == "duplicate column name: password_changed_at" ||
-		fmt.Sprint(err) == "duplicate column name: failed_login_attempts" ||
-		fmt.Sprint(err) == "duplicate column name: account_locked_until" ||
-		fmt.Sprint(err) == "duplicate column name: mfa_enabled" ||
-		fmt.Sprint(err) == "duplicate column name: mfa_secret")
+	if err == nil {
+		return false
+	}
+	errStr := err.Error()
+	// PostgreSQL returns: "pq: column \"xyz\" of relation \"table\" already exists"
+	return strings.Contains(errStr, "already exists")
 }
 
 // Ping checks if the database connection is alive
@@ -285,13 +322,15 @@ func (d *Database) SaveSubmission(submission *api.ComplianceSubmission) error {
 		return fmt.Errorf("failed to marshal system info: %w", err)
 	}
 
-	query := `
+	query := fmt.Sprintf(`
 		INSERT INTO submissions (
 			submission_id, client_id, hostname, timestamp, report_type, report_version,
 			overall_status, total_checks, passed_checks, failed_checks, warning_checks, error_checks,
 			compliance_data, evidence, system_info
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`
+		) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+	`, d.placeholder(1), d.placeholder(2), d.placeholder(3), d.placeholder(4), d.placeholder(5),
+		d.placeholder(6), d.placeholder(7), d.placeholder(8), d.placeholder(9), d.placeholder(10),
+		d.placeholder(11), d.placeholder(12), d.placeholder(13), d.placeholder(14), d.placeholder(15))
 
 	_, err = d.db.Exec(query,
 		submission.SubmissionID,
@@ -321,12 +360,12 @@ func (d *Database) SaveSubmission(submission *api.ComplianceSubmission) error {
 
 // GetSubmission retrieves a submission by ID
 func (d *Database) GetSubmission(submissionID string) (*api.ComplianceSubmission, error) {
-	query := `
+	query := fmt.Sprintf(`
 		SELECT submission_id, client_id, hostname, timestamp, report_type, report_version,
 		       compliance_data, evidence, system_info
 		FROM submissions
-		WHERE submission_id = ?
-	`
+		WHERE submission_id = %s
+	`, d.placeholder(1))
 
 	var submission api.ComplianceSubmission
 	var complianceData, evidence, systemInfo string
@@ -373,11 +412,11 @@ func (d *Database) GetSubmission(submissionID string) (*api.ComplianceSubmission
 
 // RegisterClient registers or updates a client
 func (d *Database) RegisterClient(registration *api.ClientRegistration) error {
-	query := `
+	query := fmt.Sprintf(`
 		INSERT INTO clients (
 			client_id, hostname, os_version, build_number, architecture,
 			domain, ip_address, mac_address, first_seen, last_seen
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 		ON CONFLICT(client_id) DO UPDATE SET
 			hostname = excluded.hostname,
 			os_version = excluded.os_version,
@@ -387,7 +426,8 @@ func (d *Database) RegisterClient(registration *api.ClientRegistration) error {
 			ip_address = excluded.ip_address,
 			mac_address = excluded.mac_address,
 			last_seen = CURRENT_TIMESTAMP
-	`
+	`, d.placeholder(1), d.placeholder(2), d.placeholder(3), d.placeholder(4),
+		d.placeholder(5), d.placeholder(6), d.placeholder(7), d.placeholder(8))
 
 	_, err := d.db.Exec(query,
 		registration.ClientID,
@@ -410,12 +450,12 @@ func (d *Database) RegisterClient(registration *api.ClientRegistration) error {
 
 // UpdateClientLastSeen updates the last_seen timestamp and system info for a client
 func (d *Database) UpdateClientLastSeen(clientID, hostname string, systemInfo *api.SystemInfo) error {
-	query := `
+	query := fmt.Sprintf(`
 		INSERT INTO clients (
 			client_id, hostname, os_version, build_number, architecture,
 			domain, ip_address, mac_address, first_seen, last_seen
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 		ON CONFLICT(client_id) DO UPDATE SET
 			hostname = excluded.hostname,
 			os_version = excluded.os_version,
@@ -425,7 +465,8 @@ func (d *Database) UpdateClientLastSeen(clientID, hostname string, systemInfo *a
 			ip_address = excluded.ip_address,
 			mac_address = excluded.mac_address,
 			last_seen = CURRENT_TIMESTAMP
-	`
+	`, d.placeholder(1), d.placeholder(2), d.placeholder(3), d.placeholder(4),
+		d.placeholder(5), d.placeholder(6), d.placeholder(7), d.placeholder(8))
 
 	var osVersion, buildNumber, architecture, domain, ipAddress, macAddress string
 	if systemInfo != nil {
@@ -537,12 +578,14 @@ func (d *Database) GetDashboardSummary() (*api.DashboardSummary, error) {
 	}
 
 	// Get total and active clients
-	err := d.db.QueryRow(`
+	query := fmt.Sprintf(`
 		SELECT
 			COUNT(*) as total,
-			COUNT(CASE WHEN last_seen > datetime('now', '-24 hours') THEN 1 END) as active
+			COUNT(CASE WHEN last_seen > %s THEN 1 END) as active
 		FROM clients
-	`).Scan(&summary.TotalClients, &summary.ActiveClients)
+	`, d.getDateTimeSubtract(24))
+
+	err := d.db.QueryRow(query).Scan(&summary.TotalClients, &summary.ActiveClients)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client counts: %w", err)
@@ -642,7 +685,7 @@ func (d *Database) GetDashboardSummary() (*api.DashboardSummary, error) {
 
 // GetClient retrieves detailed information for a specific client
 func (d *Database) GetClient(clientID string) (*api.ClientInfo, error) {
-	query := `
+	query := fmt.Sprintf(`
 		SELECT
 			c.id, c.client_id, c.hostname, c.first_seen, c.last_seen, c.status,
 			c.os_version, c.build_number, c.architecture, c.domain, c.ip_address, c.mac_address,
@@ -654,8 +697,8 @@ func (d *Database) GetClient(clientID string) (*api.ClientInfo, error) {
 			       ORDER BY timestamp DESC
 			       LIMIT 10)) as compliance_score
 		FROM clients c
-		WHERE c.client_id = ?
-	`
+		WHERE c.client_id = %s
+	`, d.placeholder(1))
 
 	var client api.ClientInfo
 	var lastSubmission sql.NullString
@@ -718,7 +761,7 @@ func (d *Database) GetClient(clientID string) (*api.ClientInfo, error) {
 // GetClientComplianceScoresByType retrieves average compliance scores per report type for a client
 // Calculates average of last 10 submissions for each report type
 func (d *Database) GetClientComplianceScoresByType(clientID string) (map[string]float64, error) {
-	query := `
+	query := fmt.Sprintf(`
 		SELECT
 			report_type,
 			AVG(passed_checks * 100.0 / NULLIF(total_checks, 0)) as avg_score
@@ -729,11 +772,11 @@ func (d *Database) GetClientComplianceScoresByType(clientID string) (map[string]
 				total_checks,
 				ROW_NUMBER() OVER (PARTITION BY report_type ORDER BY timestamp DESC) as rn
 			FROM submissions
-			WHERE client_id = ?
+			WHERE client_id = %s
 		)
 		WHERE rn <= 10
 		GROUP BY report_type
-	`
+	`, d.placeholder(1))
 
 	rows, err := d.db.Query(query, clientID)
 	if err != nil {
@@ -760,13 +803,13 @@ func (d *Database) GetClientComplianceScoresByType(clientID string) (map[string]
 
 // GetClientSubmissions retrieves all submissions for a specific client
 func (d *Database) GetClientSubmissions(clientID string) ([]api.SubmissionSummary, error) {
-	query := `
+	query := fmt.Sprintf(`
 		SELECT submission_id, client_id, hostname, timestamp, report_type,
 		       overall_status, total_checks, passed_checks, failed_checks
 		FROM submissions
-		WHERE client_id = ?
+		WHERE client_id = %s
 		ORDER BY timestamp DESC
-	`
+	`, d.placeholder(1))
 
 	rows, err := d.db.Query(query, clientID)
 	if err != nil {
@@ -807,7 +850,7 @@ func (d *Database) GetClientSubmissions(clientID string) ([]api.SubmissionSummar
 
 // ClearClientHistory deletes all submissions for a specific client
 func (d *Database) ClearClientHistory(clientID string) (int64, error) {
-	query := `DELETE FROM submissions WHERE client_id = ?`
+	query := fmt.Sprintf(`DELETE FROM submissions WHERE client_id = %s`, d.placeholder(1))
 
 	result, err := d.db.Exec(query, clientID)
 	if err != nil {
@@ -920,12 +963,12 @@ func (d *Database) ListPolicies() ([]Policy, error) {
 
 // GetPolicy retrieves a specific policy by policy_id
 func (d *Database) GetPolicy(policyID string) (*Policy, error) {
-	query := `
+	query := fmt.Sprintf(`
 		SELECT id, policy_id, name, description, framework, version, category, author, status,
 		       policy_data, created_at, updated_at
 		FROM policies
-		WHERE policy_id = ?
-	`
+		WHERE policy_id = %s
+	`, d.placeholder(1))
 
 	var p Policy
 	var description, framework, version, category, author sql.NullString
@@ -974,11 +1017,12 @@ func (d *Database) GetPolicy(policyID string) (*Policy, error) {
 
 // CreatePolicy creates a new policy
 func (d *Database) CreatePolicy(p *Policy) error {
-	query := `
+	query := fmt.Sprintf(`
 		INSERT INTO policies (
 			policy_id, name, description, framework, version, category, author, status, policy_data
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`
+		) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+	`, d.placeholder(1), d.placeholder(2), d.placeholder(3), d.placeholder(4),
+		d.placeholder(5), d.placeholder(6), d.placeholder(7), d.placeholder(8), d.placeholder(9))
 
 	_, err := d.db.Exec(
 		query,
@@ -1003,12 +1047,13 @@ func (d *Database) CreatePolicy(p *Policy) error {
 
 // UpdatePolicy updates an existing policy
 func (d *Database) UpdatePolicy(policyID string, p *Policy) error {
-	query := `
+	query := fmt.Sprintf(`
 		UPDATE policies
-		SET name = ?, description = ?, framework = ?, version = ?, category = ?,
-		    author = ?, status = ?, policy_data = ?, updated_at = CURRENT_TIMESTAMP
-		WHERE policy_id = ?
-	`
+		SET name = %s, description = %s, framework = %s, version = %s, category = %s,
+		    author = %s, status = %s, policy_data = %s, updated_at = CURRENT_TIMESTAMP
+		WHERE policy_id = %s
+	`, d.placeholder(1), d.placeholder(2), d.placeholder(3), d.placeholder(4),
+		d.placeholder(5), d.placeholder(6), d.placeholder(7), d.placeholder(8), d.placeholder(9))
 
 	result, err := d.db.Exec(
 		query,
@@ -1042,7 +1087,7 @@ func (d *Database) UpdatePolicy(policyID string, p *Policy) error {
 
 // DeletePolicy deletes a policy
 func (d *Database) DeletePolicy(policyID string) error {
-	query := `DELETE FROM policies WHERE policy_id = ?`
+	query := fmt.Sprintf(`DELETE FROM policies WHERE policy_id = %s`, d.placeholder(1))
 
 	result, err := d.db.Exec(query, policyID)
 	if err != nil {
@@ -1074,7 +1119,8 @@ type User struct {
 
 // CreateUser creates a new user with hashed password
 func (d *Database) CreateUser(username, passwordHash, role string) error {
-	query := `INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`
+	query := fmt.Sprintf(`INSERT INTO users (username, password_hash, role) VALUES (%s, %s, %s)`,
+		d.placeholder(1), d.placeholder(2), d.placeholder(3))
 
 	_, err := d.db.Exec(query, username, passwordHash, role)
 	if err != nil {
@@ -1087,7 +1133,8 @@ func (d *Database) CreateUser(username, passwordHash, role string) error {
 
 // GetUser retrieves a user by username
 func (d *Database) GetUser(username string) (*User, error) {
-	query := `SELECT id, username, password_hash, role, created_at, last_login FROM users WHERE username = ?`
+	query := fmt.Sprintf(`SELECT id, username, password_hash, role, created_at, last_login FROM users WHERE username = %s`,
+		d.placeholder(1))
 
 	var user User
 	var lastLogin sql.NullString
@@ -1153,7 +1200,8 @@ func (d *Database) ListUsers() ([]User, error) {
 
 // UpdateUserLastLogin updates the last_login timestamp
 func (d *Database) UpdateUserLastLogin(username string) error {
-	query := `UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE username = ?`
+	query := fmt.Sprintf(`UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE username = %s`,
+		d.placeholder(1))
 
 	_, err := d.db.Exec(query, username)
 	if err != nil {
@@ -1165,7 +1213,8 @@ func (d *Database) UpdateUserLastLogin(username string) error {
 
 // UpdateUserPassword updates a user's password hash
 func (d *Database) UpdateUserPassword(username, passwordHash string) error {
-	query := `UPDATE users SET password_hash = ? WHERE username = ?`
+	query := fmt.Sprintf(`UPDATE users SET password_hash = %s WHERE username = %s`,
+		d.placeholder(1), d.placeholder(2))
 
 	result, err := d.db.Exec(query, passwordHash, username)
 	if err != nil {
@@ -1187,7 +1236,7 @@ func (d *Database) UpdateUserPassword(username, passwordHash string) error {
 
 // DeleteUser deletes a user
 func (d *Database) DeleteUser(username string) error {
-	query := `DELETE FROM users WHERE username = ?`
+	query := fmt.Sprintf(`DELETE FROM users WHERE username = %s`, d.placeholder(1))
 
 	result, err := d.db.Exec(query, username)
 	if err != nil {
@@ -1209,7 +1258,7 @@ func (d *Database) DeleteUser(username string) error {
 
 // UserExists checks if a user exists
 func (d *Database) UserExists(username string) (bool, error) {
-	query := `SELECT COUNT(*) FROM users WHERE username = ?`
+	query := fmt.Sprintf(`SELECT COUNT(*) FROM users WHERE username = %s`, d.placeholder(1))
 
 	var count int
 	err := d.db.QueryRow(query, username).Scan(&count)
@@ -1248,10 +1297,10 @@ type APIKey struct {
 
 // CreateAPIKey creates a new API key in the database
 func (d *Database) CreateAPIKey(name, keyHash, keyPrefix, createdBy string, expiresAt *string) error {
-	query := `
+	query := fmt.Sprintf(`
 		INSERT INTO api_keys (name, key_hash, key_prefix, created_by, expires_at, is_active)
-		VALUES (?, ?, ?, ?, ?, 1)
-	`
+		VALUES (%s, %s, %s, %s, %s, %s)
+	`, d.placeholder(1), d.placeholder(2), d.placeholder(3), d.placeholder(4), d.placeholder(5), d.getBooleanDefault(true))
 
 	_, err := d.db.Exec(query, name, keyHash, keyPrefix, createdBy, expiresAt)
 	if err != nil {
@@ -1312,11 +1361,11 @@ func (d *Database) ListAPIKeys() ([]APIKey, error) {
 
 // GetAPIKeyByHash retrieves an API key by its hash
 func (d *Database) GetAPIKeyByHash(keyHash string) (*APIKey, error) {
-	query := `
+	query := fmt.Sprintf(`
 		SELECT id, name, key_hash, key_prefix, created_by, created_at, last_used, expires_at, is_active
 		FROM api_keys
-		WHERE key_hash = ? AND is_active = 1
-	`
+		WHERE key_hash = %s AND is_active = %s
+	`, d.placeholder(1), d.getBooleanDefault(true))
 
 	var key APIKey
 	var lastUsed, expiresAt sql.NullString
@@ -1351,11 +1400,11 @@ func (d *Database) GetAPIKeyByHash(keyHash string) (*APIKey, error) {
 
 // ListActiveAPIKeyHashes retrieves all active API key hashes for authentication
 func (d *Database) ListActiveAPIKeyHashes() ([]string, error) {
-	query := `
+	query := fmt.Sprintf(`
 		SELECT key_hash
 		FROM api_keys
-		WHERE is_active = 1 AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
-	`
+		WHERE is_active = %s AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+	`, d.getBooleanDefault(true))
 
 	rows, err := d.db.Query(query)
 	if err != nil {
@@ -1378,7 +1427,8 @@ func (d *Database) ListActiveAPIKeyHashes() ([]string, error) {
 
 // UpdateAPIKeyLastUsed updates the last_used timestamp for an API key
 func (d *Database) UpdateAPIKeyLastUsed(keyHash string) error {
-	query := `UPDATE api_keys SET last_used = CURRENT_TIMESTAMP WHERE key_hash = ?`
+	query := fmt.Sprintf(`UPDATE api_keys SET last_used = CURRENT_TIMESTAMP WHERE key_hash = %s`,
+		d.placeholder(1))
 
 	_, err := d.db.Exec(query, keyHash)
 	if err != nil {
@@ -1390,7 +1440,7 @@ func (d *Database) UpdateAPIKeyLastUsed(keyHash string) error {
 
 // DeleteAPIKey deletes an API key by ID
 func (d *Database) DeleteAPIKey(id int) error {
-	query := `DELETE FROM api_keys WHERE id = ?`
+	query := fmt.Sprintf(`DELETE FROM api_keys WHERE id = %s`, d.placeholder(1))
 
 	result, err := d.db.Exec(query, id)
 	if err != nil {
@@ -1412,7 +1462,8 @@ func (d *Database) DeleteAPIKey(id int) error {
 
 // DeactivateAPIKey deactivates an API key by ID
 func (d *Database) DeactivateAPIKey(id int) error {
-	query := `UPDATE api_keys SET is_active = 0 WHERE id = ?`
+	query := fmt.Sprintf(`UPDATE api_keys SET is_active = %s WHERE id = %s`,
+		d.getBooleanDefault(false), d.placeholder(1))
 
 	result, err := d.db.Exec(query, id)
 	if err != nil {
@@ -1434,7 +1485,8 @@ func (d *Database) DeactivateAPIKey(id int) error {
 
 // ActivateAPIKey activates an API key by ID
 func (d *Database) ActivateAPIKey(id int) error {
-	query := `UPDATE api_keys SET is_active = 1 WHERE id = ?`
+	query := fmt.Sprintf(`UPDATE api_keys SET is_active = %s WHERE id = %s`,
+		d.getBooleanDefault(true), d.placeholder(1))
 
 	result, err := d.db.Exec(query, id)
 	if err != nil {

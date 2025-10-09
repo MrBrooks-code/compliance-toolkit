@@ -441,17 +441,18 @@ func (s *ComplianceServer) handleSubmit(w http.ResponseWriter, r *http.Request) 
 		"report_type", submission.ReportType,
 	)
 
-	// Store submission in database
+	// Update/create client first (required for foreign key constraint)
+	if err := s.db.UpdateClientLastSeen(submission.ClientID, submission.Hostname, &submission.SystemInfo); err != nil {
+		s.logger.Error("Failed to register/update client", "error", err)
+		s.sendError(w, http.StatusInternalServerError, "Failed to register client")
+		return
+	}
+
+	// Store submission in database (after client exists)
 	if err := s.db.SaveSubmission(&submission); err != nil {
 		s.logger.Error("Failed to save submission", "error", err)
 		s.sendError(w, http.StatusInternalServerError, "Failed to save submission")
 		return
-	}
-
-	// Update client last_seen and system info
-	if err := s.db.UpdateClientLastSeen(submission.ClientID, submission.Hostname, &submission.SystemInfo); err != nil {
-		s.logger.Warn("Failed to update client last_seen", "error", err)
-		// Non-fatal - continue
 	}
 
 	// Send response
@@ -738,7 +739,14 @@ func (s *ComplianceServer) validateAPIKey(apiKey string) bool {
 		}
 	}
 
-	// Fall back to config-based keys for backwards compatibility
+	// DEPRECATED: Fall back to config-based keys for backwards compatibility
+	// WARNING: This functionality will be removed in v2.0
+	// Migrate to database-backed API keys: /api/v1/apikeys/generate
+	// Security issues with config-based keys:
+	//   - No audit trail (no last_used tracking)
+	//   - Cannot revoke without server restart
+	//   - Easily leaked in version control
+	//   - No expiration support
 	// If using hashed keys in config, check against config hashes
 	if s.config.Auth.UseHashedKeys {
 		for _, hash := range s.config.Auth.APIKeyHashes {
@@ -749,7 +757,7 @@ func (s *ComplianceServer) validateAPIKey(apiKey string) bool {
 		return false
 	}
 
-	// Fall back to plain text comparison in config (legacy)
+	// DEPRECATED: Fall back to plain text comparison in config (legacy)
 	for _, key := range s.config.Auth.APIKeys {
 		if apiKey == key {
 			return true
@@ -823,7 +831,9 @@ func (s *ComplianceServer) handleGetConfig(w http.ResponseWriter, r *http.Reques
 		},
 		"database": map[string]interface{}{
 			"type": s.config.Database.Type,
-			"path": s.config.Database.Path,
+			"host": s.config.Database.Host,
+			"port": s.config.Database.Port,
+			"name": s.config.Database.Name,
 		},
 		"auth": map[string]interface{}{
 			"enabled":     s.config.Auth.Enabled,

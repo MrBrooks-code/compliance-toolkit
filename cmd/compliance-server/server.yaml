@@ -10,11 +10,15 @@ server:
     #cert_file: "certs/server.crt"
     #key_file: "certs/server.key"
 
-# Database configuration
+# Database configuration (PostgreSQL only)
 database:
-  type: "sqlite"        # Currently only SQLite supported
-  path: "data/compliance.db"
-  # dsn: ""             # For future PostgreSQL support
+  type: "postgres"
+  host: "localhost"
+  port: 5432
+  name: "compliance"
+  user: "compliance"
+  password: "compliance"
+  sslmode: "disable"
 
 # Authentication settings
 auth:

@@ -23,16 +23,33 @@ server:
 
 # Database configuration
 database:
-  type: "${DB_TYPE:-sqlite}"
+  type: "${DB_TYPE:-postgres}"
+  # PostgreSQL configuration
+  host: "${DB_HOST:-postgres}"
+  port: ${DB_PORT:-5432}
+  name: "${DB_NAME:-compliance}"
+  user: "${DB_USER:-compliance}"
+  password: "${DB_PASSWORD:-compliance_secure_password}"
+  sslmode: "${DB_SSLMODE:-disable}"
+  # SQLite configuration (fallback)
   path: "${DB_PATH:-data/compliance.db}"
 
-# Authentication settings
+# Authentication settings - SECURITY CRITICAL
 auth:
   enabled: ${AUTH_ENABLED:-true}
-  require_key: ${AUTH_REQUIRE_KEY:-false}
+  require_key: ${AUTH_REQUIRE_KEY:-true}  # ⚠️ Changed to true for security
   use_hashed_keys: ${USE_HASHED_KEYS:-false}
   api_keys: []
   api_key_hashes: []
+
+  # JWT configuration
+  jwt:
+    enabled: ${JWT_ENABLED:-true}
+    secret_key: "${JWT_SECRET_KEY:-}"
+    access_token_lifetime: ${JWT_ACCESS_TOKEN_LIFETIME:-15}
+    refresh_token_lifetime: ${JWT_REFRESH_TOKEN_LIFETIME:-7}
+    issuer: "${JWT_ISSUER:-ComplianceToolkit}"
+    audience: "${JWT_AUDIENCE:-ComplianceToolkit}"
 
 # Web dashboard
 dashboard:
@@ -65,8 +82,15 @@ echo "==================================="
 echo "Server Host: ${SERVER_HOST:-0.0.0.0}"
 echo "Server Port: ${SERVER_PORT:-8080}"
 echo "TLS Enabled: ${TLS_ENABLED:-false}"
-echo "Database Type: ${DB_TYPE:-sqlite}"
-echo "Database Path: ${DB_PATH:-data/compliance.db}"
+echo "Database Type: ${DB_TYPE:-postgres}"
+if [ "${DB_TYPE:-postgres}" = "postgres" ]; then
+    echo "Database Host: ${DB_HOST:-postgres}"
+    echo "Database Port: ${DB_PORT:-5432}"
+    echo "Database Name: ${DB_NAME:-compliance}"
+    echo "Database User: ${DB_USER:-compliance}"
+else
+    echo "Database Path: ${DB_PATH:-data/compliance.db}"
+fi
 echo "Auth Enabled: ${AUTH_ENABLED:-true}"
 echo "Dashboard Enabled: ${DASHBOARD_ENABLED:-true}"
 echo "Log Level: ${LOGGING_LEVEL:-info}"

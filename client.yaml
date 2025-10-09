@@ -8,9 +8,9 @@ client:
 
 # Server configuration (leave url empty for standalone mode)
 server:
-  url: ""                   # e.g., "https://compliance.company.com:8443"
-  api_key: ""               # API key for authentication
-  tls_verify: true          # Verify TLS certificates
+  url: "http://localhost:8080"  # Server URL (use https:// in production)
+  api_key: ""  # API key for authentication
+  tls_verify: false         # Set to true in production with HTTPS
   timeout: 30s              # Request timeout
   retry_on_startup: true    # Retry cached submissions on startup
 

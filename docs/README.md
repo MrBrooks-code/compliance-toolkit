@@ -27,17 +27,22 @@ Welcome to the Compliance Toolkit documentation! This guide will help you get st
 8. **[Evidence Logging](reference/EVIDENCE.md)** - Audit trail documentation
 9. **[Executive Reports](reference/EXECUTIVE.md)** - C-level reporting features
 
+### 🔒 Security (Client-Server Deployment)
+
+10. **[Client Security Guide](security/CLIENT_SECURITY.md)** - ⚠️ **REQUIRED** - Secure client submissions
+11. **[Quick Security Setup](security/QUICK_SECURITY_SETUP.md)** - 10-minute security hardening
+
 ### 🔧 Advanced Usage
 
-10. **[Adding New Reports](developer-guide/ADDING_REPORTS.md)** - Create custom reports
-11. **[Template System](developer-guide/TEMPLATES.md)** - HTML template customization
-12. **[Configuration Reference](reference/CONFIG.md)** - JSON configuration format
+12. **[Adding New Reports](developer-guide/ADDING_REPORTS.md)** - Create custom reports
+13. **[Template System](developer-guide/TEMPLATES.md)** - HTML template customization
+14. **[Configuration Reference](reference/CONFIG.md)** - JSON configuration format
 
 ### 👨‍💻 Developer Resources
 
-13. **[Architecture Overview](developer-guide/ARCHITECTURE.md)** - Codebase structure
-14. **[Development Guide](developer-guide/DEVELOPMENT.md)** - Building and contributing
-15. **[Project Status](PROJECT_STATUS.md)** - Current features and roadmap
+15. **[Architecture Overview](developer-guide/ARCHITECTURE.md)** - Codebase structure
+16. **[Development Guide](developer-guide/DEVELOPMENT.md)** - Building and contributing
+17. **[Project Status](PROJECT_STATUS.md)** - Current features and roadmap
 
 ---
 
@@ -52,6 +57,11 @@ Welcome to the Compliance Toolkit documentation! This guide will help you get st
 - **Scheduled scans?** → [CLI Usage Guide](user-guide/CLI_USAGE.md)
 - **Need examples?** → [Automation Examples](user-guide/AUTOMATION.md)
 - **Compliance audit?** → [Evidence Logging](reference/EVIDENCE.md)
+
+### For Security Teams:
+- **Client-server deployment?** → ⚠️ **[Client Security Guide](security/CLIENT_SECURITY.md)** *(REQUIRED)*
+- **Quick security setup?** → [Quick Security Setup](security/QUICK_SECURITY_SETUP.md)
+- **Enable authentication?** → [Quick Security Setup](security/QUICK_SECURITY_SETUP.md#critical-first-steps)
 
 ### For Developers:
 - **Custom reports?** → [Adding New Reports](developer-guide/ADDING_REPORTS.md)
@@ -109,6 +119,9 @@ docs/
 │   ├── CLI_QUICKSTART.md          # CLI quick start
 │   ├── CLI_USAGE.md               # Complete CLI reference
 │   └── AUTOMATION.md              # Automation examples
+├── security/                      # ⚠️ CRITICAL for client-server deployments
+│   ├── CLIENT_SECURITY.md         # Complete security guide
+│   └── QUICK_SECURITY_SETUP.md    # 10-minute security hardening
 ├── developer-guide/
 │   ├── ARCHITECTURE.md            # Codebase overview
 │   ├── DEVELOPMENT.md             # Build and contribute
