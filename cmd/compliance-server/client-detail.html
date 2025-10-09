@@ -360,6 +360,90 @@
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 16px;
         }
+
+        /* Progress meter styles */
+        .score-meter-container {
+            margin-top: 12px;
+            position: relative;
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .score-meter-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1.5s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-meter-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.3) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .score-meter-fill.high {
+            background: linear-gradient(90deg, var(--success) 0%, #10b981 100%);
+        }
+
+        .score-meter-fill.medium {
+            background: linear-gradient(90deg, var(--warning) 0%, #fbbf24 100%);
+        }
+
+        .score-meter-fill.low {
+            background: linear-gradient(90deg, var(--danger) 0%, #f87171 100%);
+        }
+
+        .stat-card.with-meter {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card.with-meter::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.05;
+            pointer-events: none;
+        }
+
+        .stat-card.with-meter.high::before {
+            background: var(--success);
+        }
+
+        .stat-card.with-meter.medium::before {
+            background: var(--warning);
+        }
+
+        .stat-card.with-meter.low::before {
+            background: var(--danger);
+        }
     </style>
 </head>
 <body>
@@ -407,6 +491,16 @@
             <div class="stat-card">
                 <div class="stat-label">Status</div>
                 <div class="stat-value" id="stat-status" style="font-size: 18px;">-</div>
+            </div>
+        </div>
+
+        <!-- Pack-Specific Compliance Scores -->
+        <div class="section" id="pack-scores-section" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">Compliance Scores by Report Type</h2>
+            </div>
+            <div class="stats-grid" id="pack-scores-grid">
+                <!-- Pack scores will be dynamically populated -->
             </div>
         </div>
 
@@ -571,6 +665,58 @@
 
             const statusBadge = `<span class="badge ${clientData.status}">${clientData.status}</span>`;
             document.getElementById('stat-status').innerHTML = statusBadge;
+
+            // Render pack-specific scores
+            renderPackScores();
+        }
+
+        // Render pack-specific compliance scores
+        function renderPackScores() {
+            const section = document.getElementById('pack-scores-section');
+            const grid = document.getElementById('pack-scores-grid');
+
+            // Check if we have pack-specific scores
+            if (!clientData.compliance_scores_by_type || Object.keys(clientData.compliance_scores_by_type).length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            // Show the section
+            section.style.display = 'block';
+
+            // Build the grid of score cards
+            let cardsHTML = '';
+            const scores = clientData.compliance_scores_by_type;
+
+            // Sort report types alphabetically for consistent display
+            const sortedReportTypes = Object.keys(scores).sort();
+
+            sortedReportTypes.forEach(reportType => {
+                const score = scores[reportType];
+                const scoreColor = score >= 80 ? 'var(--success)' : (score >= 60 ? 'var(--warning)' : 'var(--danger)');
+                const scoreClass = score >= 80 ? 'high' : (score >= 60 ? 'medium' : 'low');
+
+                cardsHTML += `
+                    <div class="stat-card with-meter ${scoreClass}">
+                        <div class="stat-label">${reportType}</div>
+                        <div class="stat-value" style="color: ${scoreColor};">${score.toFixed(1)}%</div>
+                        <div class="score-meter-container">
+                            <div class="score-meter-fill ${scoreClass}" style="width: 0%;" data-width="${score}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = cardsHTML;
+
+            // Animate the meters after a brief delay
+            setTimeout(() => {
+                const meters = grid.querySelectorAll('.score-meter-fill');
+                meters.forEach(meter => {
+                    const targetWidth = meter.getAttribute('data-width');
+                    meter.style.width = targetWidth;
+                });
+            }, 100);
         }
 
         // Render system info
