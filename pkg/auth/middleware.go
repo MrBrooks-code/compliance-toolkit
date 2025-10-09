@@ -193,7 +193,7 @@ func GetUsername(ctx context.Context) (string, bool) {
 // getUserJWTVersion retrieves the current JWT version for a user from database
 func (m *Middleware) getUserJWTVersion(ctx context.Context, userID int) (int, error) {
 	var jwtVersion int
-	query := "SELECT jwt_version FROM users WHERE id = ?"
+	query := "SELECT jwt_version FROM users WHERE id = $1"
 	err := m.db.QueryRowContext(ctx, query, userID).Scan(&jwtVersion)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get user JWT version: %w", err)
