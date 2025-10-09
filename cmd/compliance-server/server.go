@@ -1201,6 +1201,15 @@ func (s *ComplianceServer) handleClientDetail(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Get compliance scores by report type
+	scoresByType, err := s.db.GetClientComplianceScoresByType(clientID)
+	if err != nil {
+		s.logger.Warn("Failed to get compliance scores by type", "error", err, "client_id", clientID)
+		// Non-fatal - continue with empty scores
+		scoresByType = make(map[string]float64)
+	}
+	client.ComplianceScoresByType = scoresByType
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(client)
 }

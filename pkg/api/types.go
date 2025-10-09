@@ -80,15 +80,16 @@ type ClientRegistration struct {
 
 // ClientInfo represents information about a registered client
 type ClientInfo struct {
-	ID              string    `json:"id"`
-	ClientID        string    `json:"client_id"`
-	Hostname        string    `json:"hostname"`
-	FirstSeen       time.Time `json:"first_seen"`
-	LastSeen        time.Time `json:"last_seen"`
-	Status          string    `json:"status"` // "active", "inactive", "error"
-	LastSubmission  string    `json:"last_submission_id,omitempty"`
-	ComplianceScore float64   `json:"compliance_score,omitempty"`
-	SystemInfo      SystemInfo `json:"system_info"`
+	ID                     string             `json:"id"`
+	ClientID               string             `json:"client_id"`
+	Hostname               string             `json:"hostname"`
+	FirstSeen              time.Time          `json:"first_seen"`
+	LastSeen               time.Time          `json:"last_seen"`
+	Status                 string             `json:"status"` // "active", "inactive", "error"
+	LastSubmission         string             `json:"last_submission_id,omitempty"`
+	ComplianceScore        float64            `json:"compliance_score,omitempty"`
+	ComplianceScoresByType map[string]float64 `json:"compliance_scores_by_type,omitempty"` // Average score per report type
+	SystemInfo             SystemInfo         `json:"system_info"`
 }
 
 // DashboardSummary provides a high-level overview for the dashboard

@@ -364,8 +364,12 @@ func (d *Database) ListClients() ([]api.ClientInfo, error) {
 			c.id, c.client_id, c.hostname, c.first_seen, c.last_seen, c.status,
 			c.os_version, c.build_number, c.architecture, c.domain, c.ip_address, c.mac_address,
 			(SELECT submission_id FROM submissions WHERE client_id = c.client_id ORDER BY timestamp DESC LIMIT 1) as last_submission,
-			(SELECT COUNT(*) FROM submissions WHERE client_id = c.client_id AND overall_status = 'compliant') * 100.0 /
-			NULLIF((SELECT COUNT(*) FROM submissions WHERE client_id = c.client_id), 0) as compliance_score
+			(SELECT AVG(passed_checks * 100.0 / NULLIF(total_checks, 0))
+			 FROM (SELECT passed_checks, total_checks
+			       FROM submissions
+			       WHERE client_id = c.client_id
+			       ORDER BY timestamp DESC
+			       LIMIT 10)) as compliance_score
 		FROM clients c
 		ORDER BY c.last_seen DESC
 	`
@@ -555,8 +559,12 @@ func (d *Database) GetClient(clientID string) (*api.ClientInfo, error) {
 			c.id, c.client_id, c.hostname, c.first_seen, c.last_seen, c.status,
 			c.os_version, c.build_number, c.architecture, c.domain, c.ip_address, c.mac_address,
 			(SELECT submission_id FROM submissions WHERE client_id = c.client_id ORDER BY timestamp DESC LIMIT 1) as last_submission,
-			(SELECT COUNT(*) FROM submissions WHERE client_id = c.client_id AND overall_status = 'compliant') * 100.0 /
-			NULLIF((SELECT COUNT(*) FROM submissions WHERE client_id = c.client_id), 0) as compliance_score
+			(SELECT AVG(passed_checks * 100.0 / NULLIF(total_checks, 0))
+			 FROM (SELECT passed_checks, total_checks
+			       FROM submissions
+			       WHERE client_id = c.client_id
+			       ORDER BY timestamp DESC
+			       LIMIT 10)) as compliance_score
 		FROM clients c
 		WHERE c.client_id = ?
 	`
@@ -617,6 +625,49 @@ func (d *Database) GetClient(clientID string) (*api.ClientInfo, error) {
 	}
 
 	return &client, nil
+}
+
+// GetClientComplianceScoresByType retrieves average compliance scores per report type for a client
+// Calculates average of last 10 submissions for each report type
+func (d *Database) GetClientComplianceScoresByType(clientID string) (map[string]float64, error) {
+	query := `
+		SELECT
+			report_type,
+			AVG(passed_checks * 100.0 / NULLIF(total_checks, 0)) as avg_score
+		FROM (
+			SELECT
+				report_type,
+				passed_checks,
+				total_checks,
+				ROW_NUMBER() OVER (PARTITION BY report_type ORDER BY timestamp DESC) as rn
+			FROM submissions
+			WHERE client_id = ?
+		)
+		WHERE rn <= 10
+		GROUP BY report_type
+	`
+
+	rows, err := d.db.Query(query, clientID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query compliance scores by type: %w", err)
+	}
+	defer rows.Close()
+
+	scores := make(map[string]float64)
+	for rows.Next() {
+		var reportType string
+		var avgScore sql.NullFloat64
+
+		if err := rows.Scan(&reportType, &avgScore); err != nil {
+			return nil, fmt.Errorf("failed to scan compliance score: %w", err)
+		}
+
+		if avgScore.Valid {
+			scores[reportType] = avgScore.Float64
+		}
+	}
+
+	return scores, nil
 }
 
 // GetClientSubmissions retrieves all submissions for a specific client
