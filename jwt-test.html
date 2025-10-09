@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Authentication Test - Compliance Toolkit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #1e40af;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            background: #1e40af;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background: #1e3a8a;
+        }
+
+        button.danger {
+            background: #dc2626;
+        }
+
+        button.danger:hover {
+            background: #b91c1c;
+        }
+
+        button.secondary {
+            background: #6b7280;
+        }
+
+        button.secondary:hover {
+            background: #4b5563;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            border: 1px solid #059669;
+            color: #065f46;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            border: 1px solid #dc2626;
+            color: #991b1b;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            border: 1px solid #0284c7;
+            color: #075985;
+        }
+
+        .token-display {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        pre {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 JWT Authentication Test Page</h1>
+
+        <div class="grid">
+            <!-- Login Section -->
+            <div class="card">
+                <h2>1. Login</h2>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="username" value="admin" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" value="admin" placeholder="Enter password">
+                </div>
+                <button onclick="testLogin()">Login</button>
+                <div id="loginStatus"></div>
+            </div>
+
+            <!-- Token Info -->
+            <div class="card">
+                <h2>2. Token Information</h2>
+                <button onclick="showTokenInfo()">Show Token Info</button>
+                <button class="secondary" onclick="refreshToken()">Refresh Token</button>
+                <div id="tokenInfo"></div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- Protected Endpoint -->
+            <div class="card">
+                <h2>3. Test Protected Endpoint</h2>
+                <button onclick="testProtectedEndpoint()">Get Current User (/api/auth/me)</button>
+                <div id="protectedStatus"></div>
+            </div>
+
+            <!-- Logout Section -->
+            <div class="card">
+                <h2>4. Logout</h2>
+                <button class="danger" onclick="testLogout(false)">Logout Current Session</button>
+                <button class="danger" onclick="testLogout(true)">Logout All Devices</button>
+                <div id="logoutStatus"></div>
+            </div>
+        </div>
+
+        <!-- Raw Response -->
+        <div class="card">
+            <h2>Raw API Response</h2>
+            <pre id="rawResponse">No requests made yet</pre>
+        </div>
+    </div>
+
+    <!-- JWT Auth Client -->
+    <script src="/static/js/auth.js"></script>
+
+    <script>
+        // Test Login
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const statusDiv = document.getElementById('loginStatus');
+            const rawDiv = document.getElementById('rawResponse');
+
+            statusDiv.innerHTML = '<div class="status info">Logging in...</div>';
+
+            try {
+                const result = await window.authClient.login(username, password);
+
+                statusDiv.innerHTML = '<div class="status success">✓ Login successful!</div>';
+                rawDiv.textContent = JSON.stringify(result, null, 2);
+
+                // Show token info
+                showTokenInfo();
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">✗ Login failed: ${error.message}</div>`;
+                rawDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Show Token Info
+        function showTokenInfo() {
+            const statusDiv = document.getElementById('tokenInfo');
+
+            if (!window.authClient.isAuthenticated()) {
+                statusDiv.innerHTML = '<div class="status error">Not authenticated</div>';
+                return;
+            }
+
+            const accessToken = window.authClient.getAccessToken();
+            const refreshToken = window.authClient.getRefreshToken();
+            const user = window.authClient.getUserInfo();
+            const isExpired = window.authClient.isTokenExpired();
+
+            statusDiv.innerHTML = `
+                <div class="status success">
+                    <strong>Status:</strong> Authenticated<br>
+                    <strong>User:</strong> ${user?.username || 'N/A'}<br>
+                    <strong>Role:</strong> ${user?.role || 'N/A'}<br>
+                    <strong>Token Expired:</strong> ${isExpired ? 'Yes (needs refresh)' : 'No'}<br>
+                </div>
+                <div class="token-display">
+                    <strong>Access Token:</strong><br>
+                    ${accessToken ? accessToken.substring(0, 50) + '...' : 'N/A'}
+                </div>
+                <div class="token-display">
+                    <strong>Refresh Token:</strong><br>
+                    ${refreshToken ? refreshToken.substring(0, 50) + '...' : 'N/A'}
+                </div>
+            `;
+        }
+
+        // Refresh Token
+        async function refreshToken() {
+            const statusDiv = document.getElementById('tokenInfo');
+            const rawDiv = document.getElementById('rawResponse');
+
+            try {
+                statusDiv.innerHTML = '<div class="status info">Refreshing token...</div>';
+
+                const result = await window.authClient.refreshToken();
+
+                statusDiv.innerHTML = '<div class="status success">✓ Token refreshed!</div>';
+                rawDiv.textContent = JSON.stringify(result, null, 2);
+
+                // Show updated token info
+                setTimeout(showTokenInfo, 500);
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">✗ Refresh failed: ${error.message}</div>`;
+                rawDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Test Protected Endpoint
+        async function testProtectedEndpoint() {
+            const statusDiv = document.getElementById('protectedStatus');
+            const rawDiv = document.getElementById('rawResponse');
+
+            try {
+                statusDiv.innerHTML = '<div class="status info">Calling protected endpoint...</div>';
+
+                const response = await window.authClient.fetch('/api/auth/me');
+                const data = await response.json();
+
+                statusDiv.innerHTML = '<div class="status success">✓ Protected endpoint accessed!</div>';
+                rawDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">✗ Request failed: ${error.message}</div>`;
+                rawDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Test Logout
+        async function testLogout(logoutAll) {
+            const statusDiv = document.getElementById('logoutStatus');
+            const rawDiv = document.getElementById('rawResponse');
+
+            try {
+                statusDiv.innerHTML = `<div class="status info">Logging out${logoutAll ? ' all devices' : ''}...</div>`;
+
+                await window.authClient.logout(logoutAll);
+
+                statusDiv.innerHTML = '<div class="status success">✓ Logged out successfully!</div>';
+                rawDiv.textContent = 'Logged out';
+
+                // Clear token display
+                document.getElementById('tokenInfo').innerHTML = '<div class="status info">Tokens cleared</div>';
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">✗ Logout failed: ${error.message}</div>`;
+                rawDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.authClient.isAuthenticated()) {
+                showTokenInfo();
+            }
+        });
+    </script>
+</body>
+</html>

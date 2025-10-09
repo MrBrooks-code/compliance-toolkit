@@ -160,13 +160,101 @@ func (d *Database) initSchema() error {
 	CREATE INDEX IF NOT EXISTS idx_client_policies_client_id ON client_policies(client_id);
 	CREATE INDEX IF NOT EXISTS idx_client_policies_policy_id ON client_policies(policy_id);
 	CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+
+	-- JWT Authentication Tables (Phase 1 Migration)
+
+	-- Refresh tokens table for JWT authentication
+	CREATE TABLE IF NOT EXISTS refresh_tokens (
+		id TEXT PRIMARY KEY,
+		user_id INTEGER NOT NULL,
+		token_hash TEXT NOT NULL,
+		token_family TEXT,
+		expires_at TIMESTAMP NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		last_used TIMESTAMP,
+		revoked BOOLEAN DEFAULT 0,
+		revoked_at TIMESTAMP,
+		revoked_reason TEXT,
+		user_agent TEXT,
+		ip_address TEXT,
+		device_fingerprint TEXT,
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+	);
+
+	-- JWT blacklist for immediate token revocation
+	CREATE TABLE IF NOT EXISTS jwt_blacklist (
+		jti TEXT PRIMARY KEY,
+		user_id INTEGER NOT NULL,
+		expires_at TIMESTAMP NOT NULL,
+		blacklisted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		reason TEXT,
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+	);
+
+	-- Auth audit log for security monitoring
+	CREATE TABLE IF NOT EXISTS auth_audit_log (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER,
+		username TEXT,
+		event_type TEXT NOT NULL,
+		auth_method TEXT,
+		ip_address TEXT,
+		user_agent TEXT,
+		success BOOLEAN,
+		failure_reason TEXT,
+		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		metadata TEXT
+	);
+
+	-- JWT-specific indexes
+	CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+	CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
+	CREATE INDEX IF NOT EXISTS idx_refresh_tokens_revoked ON refresh_tokens(revoked) WHERE revoked = 0;
+	CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_family ON refresh_tokens(token_family);
+	CREATE INDEX IF NOT EXISTS idx_jwt_blacklist_expires_at ON jwt_blacklist(expires_at);
+	CREATE INDEX IF NOT EXISTS idx_jwt_blacklist_user_id ON jwt_blacklist(user_id);
+	CREATE INDEX IF NOT EXISTS idx_auth_audit_log_user_id ON auth_audit_log(user_id);
+	CREATE INDEX IF NOT EXISTS idx_auth_audit_log_timestamp ON auth_audit_log(timestamp);
+	CREATE INDEX IF NOT EXISTS idx_auth_audit_log_event_type ON auth_audit_log(event_type);
 	`
 
 	if _, err := d.db.Exec(schema); err != nil {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
+	// Add JWT columns to users table (ALTER TABLE)
+	jwtColumns := []string{
+		"ALTER TABLE users ADD COLUMN jwt_version INTEGER DEFAULT 1",
+		"ALTER TABLE users ADD COLUMN password_changed_at TIMESTAMP",
+		"ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0",
+		"ALTER TABLE users ADD COLUMN account_locked_until TIMESTAMP",
+		"ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT 0",
+		"ALTER TABLE users ADD COLUMN mfa_secret TEXT",
+	}
+
+	for _, alterSQL := range jwtColumns {
+		_, err := d.db.Exec(alterSQL)
+		if err != nil {
+			// Ignore "duplicate column name" errors (column already exists)
+			if !isColumnExistsError(err) {
+				return fmt.Errorf("failed to add JWT column: %w", err)
+			}
+		}
+	}
+
+	d.logger.Debug("Database schema initialized with JWT support")
 	return nil
+}
+
+// isColumnExistsError checks if the error is due to a column already existing
+func isColumnExistsError(err error) bool {
+	return err != nil && (
+		fmt.Sprint(err) == "duplicate column name: jwt_version" ||
+		fmt.Sprint(err) == "duplicate column name: password_changed_at" ||
+		fmt.Sprint(err) == "duplicate column name: failed_login_attempts" ||
+		fmt.Sprint(err) == "duplicate column name: account_locked_until" ||
+		fmt.Sprint(err) == "duplicate column name: mfa_enabled" ||
+		fmt.Sprint(err) == "duplicate column name: mfa_secret")
 }
 
 // Ping checks if the database connection is alive

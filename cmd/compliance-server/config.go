@@ -45,6 +45,17 @@ type AuthSettings struct {
 	APIKeyHashes  []string `mapstructure:"api_key_hashes"`  // Bcrypt hashed keys (recommended)
 	RequireKey    bool     `mapstructure:"require_key"`
 	UseHashedKeys bool     `mapstructure:"use_hashed_keys"` // Whether to use hashed keys
+	JWT           JWTAuthSettings `mapstructure:"jwt"`         // JWT authentication settings
+}
+
+// JWTAuthSettings contains JWT-specific authentication configuration
+type JWTAuthSettings struct {
+	Enabled              bool   `mapstructure:"enabled"`                // Enable JWT authentication
+	SecretKey            string `mapstructure:"secret_key"`             // Secret key for signing tokens (auto-generated if empty)
+	AccessTokenLifetime  int    `mapstructure:"access_token_lifetime"`  // Access token lifetime in minutes (default: 15)
+	RefreshTokenLifetime int    `mapstructure:"refresh_token_lifetime"` // Refresh token lifetime in days (default: 7)
+	Issuer               string `mapstructure:"issuer"`                 // Token issuer (default: compliance-toolkit)
+	Audience             string `mapstructure:"audience"`               // Token audience (default: compliance-api)
 }
 
 // DashboardSettings contains web dashboard configuration
@@ -111,6 +122,14 @@ func setConfigDefaults(v *viper.Viper) {
 	v.SetDefault("auth.api_keys", []string{})
 	v.SetDefault("auth.api_key_hashes", []string{})
 	v.SetDefault("auth.use_hashed_keys", false) // Default to false for backwards compatibility
+
+	// JWT defaults
+	v.SetDefault("auth.jwt.enabled", false) // Disabled by default until migration complete
+	v.SetDefault("auth.jwt.secret_key", "") // Auto-generated on first run if empty
+	v.SetDefault("auth.jwt.access_token_lifetime", 15) // 15 minutes
+	v.SetDefault("auth.jwt.refresh_token_lifetime", 7) // 7 days
+	v.SetDefault("auth.jwt.issuer", "compliance-toolkit")
+	v.SetDefault("auth.jwt.audience", "compliance-api")
 
 	// Dashboard defaults
 	v.SetDefault("dashboard.enabled", true)
@@ -205,6 +224,15 @@ auth:
   api_keys:
     - "your-api-key-here"
     # - "another-api-key"
+
+  # JWT authentication (modern, recommended)
+  jwt:
+    enabled: false           # Set to true to enable JWT authentication
+    secret_key: ""           # Auto-generated on first run if empty
+    access_token_lifetime: 15   # Access token lifetime in minutes
+    refresh_token_lifetime: 7   # Refresh token lifetime in days
+    issuer: "compliance-toolkit"
+    audience: "compliance-api"
 
 # Web dashboard
 dashboard:
