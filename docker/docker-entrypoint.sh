@@ -34,6 +34,15 @@ auth:
   api_keys: []
   api_key_hashes: []
 
+  # JWT configuration
+  jwt:
+    enabled: ${JWT_ENABLED:-true}
+    secret_key: "${JWT_SECRET_KEY:-}"
+    access_token_lifetime: ${JWT_ACCESS_TOKEN_LIFETIME:-15}
+    refresh_token_lifetime: ${JWT_REFRESH_TOKEN_LIFETIME:-7}
+    issuer: "${JWT_ISSUER:-ComplianceToolkit}"
+    audience: "${JWT_AUDIENCE:-ComplianceToolkit}"
+
 # Web dashboard
 dashboard:
   enabled: ${DASHBOARD_ENABLED:-true}
